@@ -474,11 +474,11 @@
     color: var(--accent);
 }
 
-/* 三网延迟明细（每个监测任务一行：名称 / 延迟 / 丢包率） */
+/* 三网延迟明细：任务名 / 延迟 / 波动条 / 丢包率 */
 .node-ping-tasks {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
     margin-top: 14px;
     padding-top: 10px;
     border-top: 1px dashed var(--border-light);
@@ -486,11 +486,15 @@
 
 .ping-task-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: 2.6em auto minmax(0, 1fr) 2.9em;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 0.72rem;
-    line-height: 1.5;
+    line-height: 1.6;
+}
+
+.ping-task-row.is-failed .ping-task-name {
+    color: var(--text-tertiary);
 }
 
 .ping-task-name {
@@ -504,6 +508,8 @@
     font-family: var(--font-mono);
     font-weight: 700;
     white-space: nowrap;
+    min-width: 3.2em;
+    text-align: right;
 }
 
 .ping-task-ms.level-excellent,
@@ -519,11 +525,55 @@
     color: var(--danger);
 }
 
+/* 波动条：每格一次探测，颜色随延迟升高由绿转黄转红 */
+.ping-bars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.ping-bar-cell {
+    flex: 1 1 0;
+    min-width: 3px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--border-light);
+    transition: opacity var(--transition-fast);
+}
+
+.ping-bar-cell.level-excellent,
+.ping-bar-cell.level-normal {
+    background: var(--success);
+}
+
+.ping-bar-cell.level-warning {
+    background: var(--warning);
+}
+
+.ping-bar-cell.level-danger {
+    background: var(--danger);
+}
+
+.ping-bar-cell.level-empty {
+    background: var(--border-light);
+    opacity: 0.55;
+}
+
+.ping-bars-empty {
+    height: 10px;
+}
+
+/* 本轮探测失败：历史保留但整条压暗 */
+.ping-bars.is-failed .ping-bar-cell {
+    opacity: 0.45;
+}
+
 .ping-task-loss {
     font-family: var(--font-mono);
     font-size: 0.68rem;
     color: var(--text-tertiary);
-    min-width: 44px;
     text-align: right;
     white-space: nowrap;
 }

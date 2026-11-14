@@ -570,24 +570,22 @@ function pingMetrics(overrides) {
         pingTaskCount: 3,
         pingLoss: 4.2,
         pingTasks: [
-            { id: '2', name: '电信', ms: 74, lossPct: 14.75, level: 'normal', failed: false },
-            { id: '3', name: '移动', ms: 45, lossPct: 0, level: 'excellent', failed: false },
-            { id: '4', name: '联通', ms: 41, lossPct: 0, level: 'excellent', failed: false }
+            { id: '2', name: '电信', ms: 74, lossPct: 14.75, level: 'normal', failed: false, bars: [60, 74, 88] },
+            { id: '3', name: '移动', ms: 45, lossPct: 0, level: 'excellent', failed: false, bars: [43, 45, 47] },
+            { id: '4', name: '联通', ms: 41, lossPct: 0, level: 'excellent', failed: false, bars: [40, 41, 42] }
         ]
     }, overrides || {});
 }
 
-test('renderPingTasks 每个监测任务输出一行，含名称/延迟/丢包', function() {
+test('renderPingTasks 每个监测任务输出一行，含名称/延迟/波动条/丢包', function() {
     const html = renderPingTasks(pingMetrics(), true);
     assert.match(html, /class="node-ping-tasks"/);
-    assert.strictEqual((html.match(/class="ping-task-row"/g) || []).length, 3);
+    assert.strictEqual((html.match(/class="ping-task-row/g) || []).length, 3);
     assert.match(html, /电信/);
     assert.match(html, /74ms/);
     assert.match(html, /14\.8%/);   // 14.75 → toFixed(1)
     assert.match(html, /移动/);
-    assert.match(html, /45ms/);
     assert.match(html, /联通/);
-    assert.match(html, /41ms/);
 });
 
 test('renderPingTasks 按任务分级着色', function() {
@@ -601,20 +599,38 @@ test('renderPingTasks 在 showPing=false 或无任务时不输出', function() {
     assert.strictEqual(renderPingTasks(pingMetrics({ pingTasks: [] }), true), '');
 });
 
-test('renderPingTasks 探测失败的任务显示超时而非 -1ms', function() {
+test('renderPingTasks 探测失败显示超时，但保留历史波动条并标记异常', function() {
     const html = renderPingTasks(pingMetrics({
-        pingTasks: [{ id: '2', name: '电信', ms: null, lossPct: 100, level: 'normal', failed: true }]
+        pingTasks: [{ id: '2', name: '电信', ms: null, lossPct: 100, level: 'normal', failed: true, bars: [50, 60] }]
     }), true);
     assert.match(html, /超时/);
     assert.ok(html.indexOf('-1ms') === -1);
+    // 保留历史走势（信息量更大），但整条加 is-failed 压暗
+    assert.strictEqual((html.match(/ping-bar-cell/g) || []).length, 2);
+    assert.match(html, /class="ping-bars is-failed"/);
 });
 
 test('renderPingTasks 对任务名做 HTML 转义', function() {
     const html = renderPingTasks(pingMetrics({
-        pingTasks: [{ id: '9', name: '<img src=x onerror=1>', ms: 10, lossPct: 0, level: 'excellent', failed: false }]
+        pingTasks: [{ id: '9', name: '<img src=x onerror=1>', ms: 10, lossPct: 0, level: 'excellent', failed: false, bars: [] }]
     }), true);
     assert.ok(html.indexOf('<img') === -1);
     assert.match(html, /&lt;img/);
+});
+
+test('renderPingTasks 渲染波动条格子并按延迟分级', function() {
+    const html = renderPingTasks(pingMetrics({
+        pingTasks: [
+            { id: '2', name: '电信', ms: 120, lossPct: 0, level: 'warning', failed: false,
+              bars: [40, 80, 150, 400, null] }
+        ]
+    }), true);
+    assert.strictEqual((html.match(/ping-bar-cell/g) || []).length, 5);
+    assert.match(html, /ping-bar-cell level-excellent/);   // 40
+    assert.match(html, /ping-bar-cell level-normal/);      // 80
+    assert.match(html, /ping-bar-cell level-warning/);     // 150
+    assert.match(html, /ping-bar-cell level-danger/);      // 400
+    assert.match(html, /ping-bar-cell level-empty/);       // null
 });
 
 test('getPingTaskList 保持 komari 返回的任务顺序', function() {
@@ -636,6 +652,55 @@ test('getPingTaskList 把 latest=-1 标记为 failed 并保留丢包', function(
 test('getPingTaskList 空输入返回空数组', function() {
     assert.deepStrictEqual(getPingTaskList(null), []);
     assert.deepStrictEqual(getPingTaskList({}), []);
+});
+
+test('getPingTaskList 按 uuid 附上历史波动序列', function() {
+    const prev = state.pingData;
+    state.pingData = {
+        'node-x': {
+            records: [
+                { time: 'T1', task_id: '2', value: 50 },
+                { time: 'T2', task_id: '2', value: 90 },
+                { time: 'T3', task_id: '3', value: 40 }
+            ],
+            tasks: []
+        }
+    };
+    try {
+        const list = getPingTaskList(
+            { '2': { name: '电信', latest: 90, loss: 0 }, '3': { name: '移动', latest: 40, loss: 0 } },
+            'node-x'
+        );
+        assert.strictEqual(list[0].bars.length, 20);          // 补足到 20 格
+        assert.strictEqual(list[0].bars[19], 90);             // 尾部是最新
+        assert.strictEqual(list[0].bars[18], 50);
+        assert.strictEqual(list[0].bars[0], null);            // 左侧补空
+        assert.strictEqual(list[1].bars[19], 40);
+    } finally {
+        state.pingData = prev;
+    }
+});
+
+test('getPingTaskList 把实时值接到波动条末尾并随滚动裁剪', function() {
+    const prev = state.pingData;
+    // 造满 20 格的完整历史
+    const records = [];
+    for (let i = 0; i < 20; i++) records.push({ time: 'T' + i, task_id: '2', value: 50 + i });
+    state.pingData = { 'node-y': { records: records, tasks: [] } };
+    try {
+        const list = getPingTaskList({ '2': { name: '电信', latest: 99, loss: 0 } }, 'node-y');
+        const bars = list[0].bars;
+        assert.strictEqual(bars.length, 20);        // 保持 20 格
+        assert.strictEqual(bars[19], 99);           // 末格是最新实时值
+        assert.strictEqual(bars[0], 51);            // 最旧的 50 被挤出
+
+        // 实时值与末格相同 → 不重复追加
+        const again = getPingTaskList({ '2': { name: '电信', latest: 99, loss: 0 } }, 'node-y');
+        assert.strictEqual(again[0].bars.length, 20);
+        assert.strictEqual(again[0].bars[19], 99);
+    } finally {
+        state.pingData = prev;
+    }
 });
 
 // ── Summary ───────────────────────────────────────────────────────

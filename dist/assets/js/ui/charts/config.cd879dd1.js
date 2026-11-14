@@ -1,5 +1,5 @@
-import { t } from '../../i18n/index.4643f495.js';
-import { formatBytes, formatSpeed, formatAxisSpeed, getSpeedAxisUnit, formatAxisCount, getCountAxisUnit } from '../../utils/format.804e68d7.js';
+import { t } from '../../i18n/index.aa4b463b.js';
+import { formatBytes, formatSpeed, formatAxisSpeed, getSpeedAxisUnit, formatAxisCount, getCountAxisUnit } from '../../utils/format.f3ad0a55.js';
 
 export function getChartConfigs(node, liveData) {
     const cs = getComputedStyle(document.documentElement);

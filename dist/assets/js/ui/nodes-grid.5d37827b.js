@@ -6,11 +6,11 @@
  */
 
 import { state } from '../core/state.05f8be33.js';
-import { t } from '../i18n/index.4643f495.js';
-import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice, formatPing } from '../utils/format.804e68d7.js';
-import { escapeHtml, parseTagInfo } from '../utils/helpers.f809ec46.js';
-import { openNodeModal } from './modal.08b6561d.js';
-import { getFilteredNodes, calculateNodeMetrics } from './nodes.e6fa383b.js';
+import { t } from '../i18n/index.aa4b463b.js';
+import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice, formatPing } from '../utils/format.f3ad0a55.js';
+import { escapeHtml, parseTagInfo, getPingLevel } from '../utils/helpers.a7d401e6.js';
+import { openNodeModal } from './modal.87e99526.js';
+import { getFilteredNodes, calculateNodeMetrics } from './nodes.f5da3a66.js';
 
 /**
  * 渲染指标进度条
@@ -56,15 +56,48 @@ export function renderPingTasks(metrics, showPing) {
             title += ' · ' + t('packet_loss') + ' ' + task.lossPct.toFixed(1) + '%';
         }
 
-        html += '<div class="ping-task-row" title="' + escapeHtml(title) + '">';
+        html += '<div class="ping-task-row' + (task.failed ? ' is-failed' : '') + '" title="' + escapeHtml(title) + '">';
         html += '<span class="ping-task-name">' + escapeHtml(task.name) + '</span>';
         html += '<span class="ping-task-ms level-' + task.level + '">' + msText + '</span>';
+        html += renderPingBars(task);
         html += '<span class="ping-task-loss">' + lossText + '</span>';
         html += '</div>';
     });
 
     html += '</div>';
 
+    return html;
+}
+
+/**
+ * 按延迟值给波动条格子分级着色，阈值与 getPingLevel 一致
+ * @param {number|null} value - 延迟值（毫秒）
+ * @returns {string} 等级名
+ */
+function pingBarLevel(value) {
+    if (value === null || value === undefined) return 'empty';
+    return getPingLevel(value);
+}
+
+/**
+ * 渲染一路延迟的波动条（近 N 次探测的分布）
+ * 每格一次探测，颜色随延迟升高由绿转黄转红，直观反映抖动。
+ * @param {Object} task - 任务对象，含 bars 数组
+ * @returns {string} HTML
+ */
+function renderPingBars(task) {
+    const bars = task.bars || [];
+    if (bars.length === 0) {
+        return '<span class="ping-bars ping-bars-empty"></span>';
+    }
+
+    // 本轮探测失败时整条压暗，但保留历史走势——比留白信息量更大
+    const failedClass = task.failed ? ' is-failed' : '';
+    let html = '<span class="ping-bars' + failedClass + '">';
+    bars.forEach(function (v) {
+        html += '<i class="ping-bar-cell level-' + pingBarLevel(v) + '"></i>';
+    });
+    html += '</span>';
     return html;
 }
 

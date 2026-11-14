@@ -89,6 +89,57 @@ export function summarizePing(pingMap) {
     };
 }
 
+/** 卡片波动条采样数量（每格代表一次探测） */
+const PING_BAR_COUNT = 20;
+
+/**
+ * 把当前实时值接到历史序列末尾，让波动条随时间滚动。
+ * 历史只在启动时加载一次，实时轮询持续更新 latest；
+ * 末格与实时值相同则不重复追加，避免相邻重复格。
+ */
+function appendLatest(bars, latest, barCount) {
+    const src = bars ? bars.slice() : [];
+    if (latest === null || latest === undefined || latest < 0) return src;
+    if (src.length > 0 && src[src.length - 1] === latest) return src;
+    src.push(latest);
+    return src.length > barCount ? src.slice(src.length - barCount) : src;
+}
+
+/**
+ * 按任务分组采样历史延迟，得到每路的波动序列。
+ * records 按时间升序，取最近 barCount 个值；不足时左侧补 null，
+ * 使各任务条对齐到同一时间窗右端。
+ * @param {string} uuid - 节点 UUID
+ * @param {number} barCount - 格数
+ * @returns {Object} taskId(String) → Array<number|null>
+ */
+function collectPingHistory(uuid, barCount) {
+    const pingInfo = state.pingData[uuid];
+    if (!pingInfo || !pingInfo.records || pingInfo.records.length === 0) return {};
+
+    const byTask = {};
+    pingInfo.records.forEach(function (r) {
+        if (r.value === null || r.value === undefined || r.value < 0) return;
+        const key = String(r.task_id);
+        if (!byTask[key]) byTask[key] = [];
+        byTask[key].push(r.value);
+    });
+
+    const out = {};
+    Object.keys(byTask).forEach(function (key) {
+        const values = byTask[key];
+        if (values.length === 0) { out[key] = []; return; }
+
+        const slice = values.slice(Math.max(0, values.length - barCount));
+        const bars = [];
+        for (let i = 0; i < barCount - slice.length; i++) bars.push(null);
+        slice.forEach(function (v) { bars.push(v); });
+        out[key] = bars;
+    });
+
+    return out;
+}
+
 /**
  * 提取每个监测任务的明细（三网：电信/移动/联通等）
  * 保持 komari 返回的任务顺序，便于卡片稳定展示。
@@ -96,8 +147,11 @@ export function summarizePing(pingMap) {
  * @param {Object|null} pingMap - 实时轮询的 ping 映射
  * @returns {Array} [{ id, name, ms, lossPct, level, failed }]
  */
-export function getPingTaskList(pingMap) {
+export function getPingTaskList(pingMap, uuid, bars) {
     if (!pingMap) return [];
+
+    const barCount = bars === undefined ? PING_BAR_COUNT : bars;
+    const history = (uuid && barCount > 0) ? collectPingHistory(uuid, barCount) : {};
 
     const list = [];
     Object.keys(pingMap).forEach(function (taskId) {
@@ -115,7 +169,8 @@ export function getPingTaskList(pingMap) {
             ms: ms,
             lossPct: lossPct,
             level: getPingLevel(ms),
-            failed: failed
+            failed: failed,
+            bars: appendLatest(history[String(taskId)], ms, barCount)
         });
     });
 

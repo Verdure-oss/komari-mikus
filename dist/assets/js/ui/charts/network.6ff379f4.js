@@ -1,8 +1,8 @@
 import { state } from '../../core/state.05f8be33.js';
 import { getCachedFontFamily } from '../../utils/color.62e2d5be.js';
-import { formatSpeed } from '../../utils/format.804e68d7.js';
+import { formatSpeed } from '../../utils/format.f3ad0a55.js';
 import { formatTimeLabel, timeRangeToHours } from '../../utils/time.855ab1d3.js';
-import { showChartTooltip, createHideHandler } from './tooltip.b45bbddc.js';
+import { showChartTooltip, createHideHandler } from './tooltip.1466981b.js';
 
 export function drawNetworkChart(canvasId, records, hours) {
     const canvas = document.getElementById(canvasId);

@@ -6,12 +6,12 @@
  */
 
 import { state } from '../core/state.05f8be33.js';
-import { t } from '../i18n/index.4643f495.js';
-import { formatBytes, formatOS } from '../utils/format.804e68d7.js';
-import { escapeHtml, getLatestPing, getPingLevel, getRealtimePing, summarizePing, getPingTaskList, getCountryFlag, getShortOs, getUsageLevel } from '../utils/helpers.f809ec46.js';
+import { t } from '../i18n/index.aa4b463b.js';
+import { formatBytes, formatOS } from '../utils/format.f3ad0a55.js';
+import { escapeHtml, getLatestPing, getPingLevel, getRealtimePing, summarizePing, getPingTaskList, getCountryFlag, getShortOs, getUsageLevel } from '../utils/helpers.a7d401e6.js';
 import { updateGreetingSubtitle } from './preloader.5fae44a4.js';
-import { renderGrid, updateGridRealtime } from './nodes-grid.cae53b47.js';
-import { renderTable, updateTableRealtime } from './nodes-table.8b35463d.js';
+import { renderGrid, updateGridRealtime } from './nodes-grid.5d37827b.js';
+import { renderTable, updateTableRealtime } from './nodes-table.55892443.js';
 
 /**
  * 获取所有分组及计数
@@ -161,7 +161,7 @@ export function calculateNodeMetrics(node) {
     const pingMs = pingSummary && pingSummary.avgMs !== null
         ? pingSummary.avgMs
         : getLatestPing(node.uuid);
-    const pingTasks = getPingTaskList(realtimePing);
+    const pingTasks = getPingTaskList(realtimePing, node.uuid);
 
     const load1 = rt.load ? rt.load.load1 : null;
 
