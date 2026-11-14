@@ -575,8 +575,8 @@
 .ping-bar-cell {
     flex: 1 1 0;
     min-width: 0;
-    height: 11px;
-    border-radius: 2px;
+    height: 6px;
+    border-radius: 1.5px;
     background: var(--border-light);
 }
 
@@ -624,7 +624,7 @@
 }
 
 .ping-bars-empty {
-    height: 9px;
+    height: 6px;
 }
 
 .network-dir {
