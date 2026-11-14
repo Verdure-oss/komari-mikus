@@ -10,7 +10,7 @@ import { t } from '../i18n/index.57cc9d99.js';
 import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice, formatPing } from '../utils/format.3f66f67a.js';
 import { escapeHtml, parseTagInfo, getPingLevel } from '../utils/helpers.7db83e02.js';
 import { openNodeModal } from './modal.07f72b93.js';
-import { getFilteredNodes, calculateNodeMetrics } from './nodes.10e8a682.js';
+import { getFilteredNodes, calculateNodeMetrics } from './nodes.d3844bf8.js';
 
 /**
  * 渲染指标进度条
@@ -55,13 +55,13 @@ export function renderPingTasks(metrics, showPing) {
             title += ' · ' + t('packet_loss') + ' ' + task.lossPct.toFixed(1) + '%';
         }
 
-        // 每路两行：第一行「名称 | 延迟值 | 丢包值」，第二行「空 | 延迟彩条 | 丢包彩条」。
-        // 两行共用同一套 grid 列宽，数值自然对齐到各自彩条的右边缘。
+        // 每路两行：第一行「名称靠左 + 延迟值靠右(列1) + 丢包值靠右(列2)」，
+        // 第二行两条彩条各自铺满所在列。名称与延迟值同处列1（左/右对齐），
+        // 因此彩条能从卡片左边缘开始，铺满整行宽度。
         html += '<div class="ping-task-group' + (task.failed ? ' is-failed' : '') + '" title="' + escapeHtml(title) + '">';
         html += '<span class="ping-task-name">' + escapeHtml(task.name) + '</span>';
         html += '<span class="ping-track-value is-lat level-' + task.level + '">' + msText + '</span>';
         html += '<span class="ping-track-value is-loss level-' + task.lossLevel + '">' + lossText + '</span>';
-        html += '<span class="ping-task-spacer"></span>';
         html += renderBars(task.bars, 'latency', 'is-lat');
         html += renderBars(task.lossBars, 'loss', 'is-loss');
         html += '</div>';

@@ -602,10 +602,9 @@ test('renderPingTasks 名称与两个数值在同一行', function() {
     assert.match(html, /class="ping-track-value is-loss level-excellent">0\.0%/);
 });
 
-test('renderPingTasks 每路结构为 名称+两数值+占位+两条彩条', function() {
+test('renderPingTasks 每路结构为 名称+两数值+两条彩条', function() {
     const html = renderPingTasks(pingMetrics(), true);
     assert.strictEqual((html.match(/class="ping-task-group/g) || []).length, 3);
-    assert.strictEqual((html.match(/class="ping-task-spacer"/g) || []).length, 3);
     // 每路 2 条彩条
     assert.strictEqual((html.match(/class="ping-bars is-lat/g) || []).length, 3);
     assert.strictEqual((html.match(/class="ping-bars is-loss/g) || []).length, 3);

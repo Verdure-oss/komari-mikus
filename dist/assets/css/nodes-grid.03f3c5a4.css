@@ -474,13 +474,15 @@
     color: var(--accent);
 }
 
-/* 三网延迟：每路两行，三列 grid 共享列宽
-   行1 = 名称 | 延迟值 | 丢包值
-   行2 = 占位 | 延迟彩条 | 丢包彩条 */
+/* 三网延迟：每路两行、两列
+   行1 列1 = [名称 ←→ 延迟值]（两端对齐）
+   行1 列2 = 丢包值（右对齐）
+   行2 列1 = 延迟彩条   行2 列2 = 丢包彩条
+   彩条各自铺满整列，视觉上从左边缘起铺满整行 */
 .node-ping-tasks {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     margin-top: 14px;
     padding-top: 10px;
     border-top: 1px dashed var(--border-light);
@@ -488,60 +490,60 @@
 
 .ping-task-group {
     display: grid;
-    grid-template-columns: 3.6em minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 14px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 16px;
     row-gap: 3px;
     align-items: center;
 }
 
+/* 名称与延迟值共用列1 的第一行：名称靠左、延迟值靠右 */
 .ping-task-name {
     grid-column: 1;
     grid-row: 1;
+    justify-self: start;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
+    padding-right: 6px;
 }
 
 .ping-task-group.is-failed .ping-task-name {
     color: var(--text-tertiary);
 }
 
-/* 第二行首列留空，让两条彩条与上方的数值列对齐 */
-.ping-task-spacer {
+.ping-track-value.is-lat {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;
+}
+
+.ping-track-value.is-loss {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+}
+
+.ping-bars.is-lat {
     grid-column: 1;
     grid-row: 2;
 }
 
-/* 显式定位：延迟在左列(2)、丢包在右列(3)，避免 nth-of-type 选错元素 */
-.ping-track-value.is-lat {
-    grid-column: 2;
-    grid-row: 1;
-}
-
-.ping-track-value.is-loss {
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.ping-bars.is-lat {
-    grid-column: 2;
-    grid-row: 2;
-}
-
 .ping-bars.is-loss {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 2;
 }
 
 .ping-track-value {
     font-family: var(--font-mono);
     font-weight: 700;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     line-height: 1.2;
-    text-align: right;
     white-space: nowrap;
+    /* 让数值不被名称挤走 */
+    background: var(--bg-card);
+    position: relative;
 }
 
 .ping-track-value.level-excellent,
@@ -561,20 +563,19 @@
     color: var(--danger);
 }
 
-/* 彩条容器：铺满所在列，保证与上方数值右边缘对齐 */
+/* 彩条容器：铺满所在列 */
 .ping-bars {
     display: flex;
     align-items: center;
     gap: 2px;
     width: 100%;
     min-width: 0;
-    overflow: hidden;
 }
 
 .ping-bar-cell {
     flex: 1 1 0;
-    min-width: 2px;
-    height: 9px;
+    min-width: 0;
+    height: 11px;
     border-radius: 2px;
     background: var(--border-light);
 }
