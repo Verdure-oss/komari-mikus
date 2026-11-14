@@ -5,7 +5,7 @@
  * @exports state, historyCache, pingCache, getCachedData, setCachedData
  */
 
-import { EWMA_ALPHA_DEFAULT, CACHE_EXPIRY_MS } from './constants.js';
+import { EWMA_ALPHA_DEFAULT, CACHE_EXPIRY_MS } from './constants.769eca5e.js';
 
 /** 历史数据缓存 */
 export const historyCache = new Map();

@@ -4,14 +4,16 @@
  */
 
 import assert from 'node:assert/strict';
-import {
+import { loadAsset } from './_resolve.mjs';
+
+const {
     applyEWMA,
     lttbDownsampleRecords,
     createNullTemplate,
     fillMissingTimePoints,
     interpolateNullsLinear,
     cutPeakValues
-} from '../dist/assets/js/algorithms/index.js';
+} = await loadAsset('dist/assets/js/algorithms/index.js');
 
 let passed = 0;
 let failed = 0;

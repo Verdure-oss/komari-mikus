@@ -88,7 +88,8 @@ jobs:
             missing_files="$missing_files dist/assets/css/"
           fi
           
-          if [ ! -f "dist/assets/js/app.js" ]; then
+          # app.js 带内容哈希（app.<hash>.js）
+          if ! ls dist/assets/js/app.*.js dist/assets/js/app.js >/dev/null 2>&1; then
             missing_files="$missing_files dist/assets/js/app.js"
           fi
           
@@ -126,6 +127,35 @@ jobs:
           else
             echo "No version changes to commit"
           fi
+
+      - name: Hash asset filenames
+        run: |
+          # ES module import 无法带 query，必须改文件名才能可靠破缓存
+          python3 scripts/hash-assets.py
+          echo "Assets hashed:"
+          ls dist/assets/js/app.*.js dist/assets/css/base.*.css
+
+      - name: Verify no broken asset references
+        run: |
+          python3 - <<'PY'
+          import io, os, re, glob
+          missing = []
+          for p in glob.glob('dist/assets/js/**/*.js', recursive=True):
+              s = io.open(p, encoding='utf-8').read()
+              for spec in re.findall(r"""from\s+['"](\.[^'"]+)['"]""", s):
+                  tgt = os.path.normpath(os.path.join(os.path.dirname(p), spec))
+                  if not os.path.exists(tgt):
+                      missing.append((os.path.basename(p), spec))
+          idx = io.open('dist/index.html', encoding='utf-8').read()
+          for ref in re.findall(r'(?:href|src)="(assets/[^"?]+)', idx):
+              if not os.path.exists(os.path.join('dist', ref)):
+                  missing.append(('index.html', ref))
+          if missing:
+              print('Broken references:')
+              for m in missing: print('  ', m)
+              raise SystemExit(1)
+          print('All asset references resolve')
+          PY
 
       - name: Create release package
         id: package

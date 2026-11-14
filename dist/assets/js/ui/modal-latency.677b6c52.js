@@ -5,12 +5,12 @@
  * @exports renderLatencyPage
  */
 
-import { state } from '../core/state.js';
-import { PING_COLORS } from '../core/constants.js';
-import { t } from '../i18n/index.js';
-import { formatPing } from '../utils/format.js';
-import { escapeHtml, getPingLevel, getTaskLatestPing } from '../utils/helpers.js';
-import { getModalElements } from './modal.js';
+import { state } from '../core/state.05f8be33.js';
+import { PING_COLORS } from '../core/constants.769eca5e.js';
+import { t } from '../i18n/index.4643f495.js';
+import { formatPing } from '../utils/format.804e68d7.js';
+import { escapeHtml, getPingLevel, getTaskLatestPing } from '../utils/helpers.f809ec46.js';
+import { getModalElements } from './modal.08b6561d.js';
 
 /**
  * 渲染延迟页（摘要 + 任务列表 + 图例）

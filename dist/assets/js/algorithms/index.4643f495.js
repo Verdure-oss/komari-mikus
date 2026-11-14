@@ -341,4 +341,4 @@ export function cutPeakValues(data, keys, alpha, windowSize, spikeThreshold) {
     return result;
 }
 
-export { processDataPipeline } from './pipeline.js';
+export { processDataPipeline } from './pipeline.d122dfa2.js';

@@ -5,9 +5,11 @@
  */
 
 import assert from 'node:assert/strict';
-import { handleRpcResult, setRenderFunctions } from '../dist/assets/js/services/realtime.js';
-import { state } from '../dist/assets/js/core/state.js';
-import { MAX_HISTORY_POINTS } from '../dist/assets/js/core/constants.js';
+import { loadAsset } from './_resolve.mjs';
+
+const { handleRpcResult, setRenderFunctions } = await loadAsset('dist/assets/js/services/realtime.js');
+const { state } = await loadAsset('dist/assets/js/core/state.js');
+const { MAX_HISTORY_POINTS } = await loadAsset('dist/assets/js/core/constants.js');
 
 // RAF polyfill：同步执行回调（等价于"下一帧立即渲染"），模块内的 typeof document 守卫保证可导入
 globalThis.requestAnimationFrame = function(fn) { fn(); return 0; };

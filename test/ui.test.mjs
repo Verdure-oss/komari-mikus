@@ -5,12 +5,14 @@
  */
 
 import assert from 'node:assert/strict';
-import { formatTooltipTime, positionTooltip } from '../dist/assets/js/ui/charts/tooltip.js';
-import { calculateNodeMetrics } from '../dist/assets/js/ui/nodes.js';
-import { renderGrid, updateGridRealtime, renderPingTasks } from '../dist/assets/js/ui/nodes-grid.js';
-import { renderTable, updateTableRealtime } from '../dist/assets/js/ui/nodes-table.js';
-import { summarizePing, getPingTaskList } from '../dist/assets/js/utils/ping.js';
-import { state } from '../dist/assets/js/core/state.js';
+import { loadAsset } from './_resolve.mjs';
+
+const { formatTooltipTime, positionTooltip } = await loadAsset('dist/assets/js/ui/charts/tooltip.js');
+const { calculateNodeMetrics } = await loadAsset('dist/assets/js/ui/nodes.js');
+const { renderGrid, updateGridRealtime, renderPingTasks } = await loadAsset('dist/assets/js/ui/nodes-grid.js');
+const { renderTable, updateTableRealtime } = await loadAsset('dist/assets/js/ui/nodes-table.js');
+const { summarizePing, getPingTaskList } = await loadAsset('dist/assets/js/utils/ping.js');
+const { state } = await loadAsset('dist/assets/js/core/state.js');
 
 let passed = 0;
 let failed = 0;

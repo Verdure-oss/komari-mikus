@@ -5,7 +5,7 @@
  * @exports trimRecords, getMaxDataPoints
  */
 
-import { MAX_HISTORY_POINTS, MAX_HISTORY_POINTS_LONG } from '../core/constants.js';
+import { MAX_HISTORY_POINTS, MAX_HISTORY_POINTS_LONG } from '../core/constants.769eca5e.js';
 
 /**
  * 数据裁剪：限制数据点数量

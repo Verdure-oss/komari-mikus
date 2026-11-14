@@ -5,8 +5,8 @@
  * @exports startPreloaderSimulation, updatePreloader, hidePreloader, updateTime, updateGreetingSubtitle, clearPreloaderTimer, getPreloaderProgress
  */
 
-import { state } from '../core/state.js';
-import { i18n } from '../i18n/index.js';
+import { state } from '../core/state.05f8be33.js';
+import { i18n } from '../i18n/index.4643f495.js';
 
 /** 模块私有：预加载器当前进度 */
 let preloaderProgress = 0;

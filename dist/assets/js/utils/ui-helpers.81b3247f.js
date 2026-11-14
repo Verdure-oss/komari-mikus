@@ -5,8 +5,8 @@
  * @exports getGreeting, resetAnimation, isMobileDevice, getUsageLevel, getShortOs
  */
 
-import { state } from '../core/state.js';
-import { i18n } from '../i18n/index.js';
+import { state } from '../core/state.05f8be33.js';
+import { i18n } from '../i18n/index.4643f495.js';
 
 /**
  * 获取问候语

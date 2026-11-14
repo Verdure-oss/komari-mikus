@@ -41,9 +41,12 @@ jobs:
       - name: Validate required files
         run: |
           missing=""
-          for f in komari-theme.json dist/index.html dist/assets/css/base.css dist/assets/js/app.js LICENSE; do
+          # 构建产物带内容哈希（base.<hash>.css / app.<hash>.js），用 glob 校验
+          for f in komari-theme.json dist/index.html LICENSE; do
             if [ ! -f "$f" ]; then missing="$missing $f"; fi
           done
+          if ! ls dist/assets/css/base.*.css dist/assets/css/base.css >/dev/null 2>&1; then missing="$missing base.css"; fi
+          if ! ls dist/assets/js/app.*.js dist/assets/js/app.js >/dev/null 2>&1; then missing="$missing app.js"; fi
           if [ -n "$missing" ]; then
             echo "Missing:$missing"
             exit 1

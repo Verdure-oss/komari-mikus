@@ -5,7 +5,7 @@
  * @exports parseFlagEmoji, getCountryCode, getCountryFlagUrl, getCountryFlag
  */
 
-import { COUNTRY_CODE_MAP } from '../core/constants.js';
+import { COUNTRY_CODE_MAP } from '../core/constants.769eca5e.js';
 
 /**
  * 解析国旗 emoji

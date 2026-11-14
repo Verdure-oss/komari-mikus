@@ -5,12 +5,12 @@
  * @exports loadPublicSettings, loadNodes, loadNodeHistory, loadRecentRecordsFallback, loadPingHistory, loadAllPingData, enrichPingTasksFromRPC, fetchPingTaskNames
  */
 
-import { state, historyCache, pingCache, getCachedData, setCachedData } from '../core/state.js';
-import { RPC_METHODS, MAX_HISTORY_POINTS, BATCH_CONCURRENCY, RECENT_RECORDS_LIMIT, PING_DEFAULT_HOURS } from '../core/constants.js';
-import { showErrorToast } from '../core/error-boundary.js';
-import { trimRecords, getApiBase } from '../utils/helpers.js';
-import { t } from '../i18n/index.js';
-import { flattenRecentRecords, mergeAndDedupRecords, forwardFillTotals } from '../algorithms/record-transforms.js';
+import { state, historyCache, pingCache, getCachedData, setCachedData } from '../core/state.05f8be33.js';
+import { RPC_METHODS, MAX_HISTORY_POINTS, BATCH_CONCURRENCY, RECENT_RECORDS_LIMIT, PING_DEFAULT_HOURS } from '../core/constants.769eca5e.js';
+import { showErrorToast } from '../core/error-boundary.10a24eab.js';
+import { trimRecords, getApiBase } from '../utils/helpers.f809ec46.js';
+import { t } from '../i18n/index.4643f495.js';
+import { flattenRecentRecords, mergeAndDedupRecords, forwardFillTotals } from '../algorithms/record-transforms.072fa001.js';
 
 /**
  * 加载公共设置
@@ -60,7 +60,7 @@ export function loadNodes() {
  * 将 /api/recent/ 返回的嵌套 Record 转为扁平格式
  * 纯函数实现已移至 algorithms/record-transforms.js，此处 re-export 保持向后兼容
  */
-export { flattenRecentRecords } from '../algorithms/record-transforms.js';
+export { flattenRecentRecords } from '../algorithms/record-transforms.072fa001.js';
 
 /**
  * 合并近期记录到 realtimeHistory（去重、排序、限 MAX_HISTORY_POINTS 条）

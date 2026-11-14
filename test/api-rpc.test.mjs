@@ -4,10 +4,12 @@
  */
 
 import assert from 'node:assert/strict';
-import { flattenRecentRecords } from '../dist/assets/js/services/api.js';
-import { getMaxDataPoints } from '../dist/assets/js/utils/helpers.js';
-import { RPC2Client } from '../dist/assets/js/services/rpc.js';
-import { RPC_METHODS, MAX_HISTORY_POINTS } from '../dist/assets/js/core/constants.js';
+import { loadAsset } from './_resolve.mjs';
+
+const { flattenRecentRecords } = await loadAsset('dist/assets/js/services/api.js');
+const { getMaxDataPoints } = await loadAsset('dist/assets/js/utils/helpers.js');
+const { RPC2Client } = await loadAsset('dist/assets/js/services/rpc.js');
+const { RPC_METHODS, MAX_HISTORY_POINTS } = await loadAsset('dist/assets/js/core/constants.js');
 
 let passed = 0;
 let failed = 0;

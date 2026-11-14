@@ -5,7 +5,7 @@
  * @exports getLatestPing, getPingTasks, getTaskLatestPing, getPingLevel, getRealtimePing, summarizePing, getPingTaskList
  */
 
-import { state } from '../core/state.js';
+import { state } from '../core/state.05f8be33.js';
 
 /**
  * 取每个任务的最新延迟后再求平均

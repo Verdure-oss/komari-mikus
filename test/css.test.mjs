@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
 
-const css = readFileSync(new URL('../dist/assets/css/stats.css', import.meta.url), 'utf8');
+// 构建会为 css 加内容哈希（stats.<hash>.css），这里按逻辑名定位实际文件
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const cssDir = join(ROOT, 'dist/assets/css');
+const statsFile = readdirSync(cssDir).find(function (f) { return /^stats(\.[0-9a-f]{8})?\.css$/.test(f); });
+assert.ok(statsFile, '未找到 stats.css 构建产物');
+const css = readFileSync(join(cssDir, statsFile), 'utf8');
 
 function ruleBody(selector) {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

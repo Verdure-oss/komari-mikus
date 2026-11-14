@@ -5,8 +5,8 @@
  * @exports RPC2Client, initRPC2Client
  */
 
-import { state } from '../core/state.js';
-import { RPC_TIMEOUT_MS, RPC_POLL_INTERVAL_MS } from '../core/constants.js';
+import { state } from '../core/state.05f8be33.js';
+import { RPC_TIMEOUT_MS, RPC_POLL_INTERVAL_MS } from '../core/constants.769eca5e.js';
 
 /**
  * RPC2Client 类 - WebSocket/HTTP RPC 客户端

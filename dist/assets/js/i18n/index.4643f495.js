@@ -5,7 +5,7 @@
  * @exports t, initLang, applyLang, i18n
  */
 
-import { state } from '../core/state.js';
+import { state } from '../core/state.05f8be33.js';
 
 /** 中文翻译字典 */
 const zhCN = {

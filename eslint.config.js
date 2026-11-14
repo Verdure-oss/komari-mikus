@@ -3,7 +3,8 @@ import globals from 'globals';
 export default [
   {
     files: ['dist/assets/js/**/*.js'],
-    ignores: ['dist/assets/js/sakura.js'],
+    // 构建会给文件名加内容哈希（sakura.<hash>.js），用 glob 匹配
+    ignores: ['dist/assets/js/sakura*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
