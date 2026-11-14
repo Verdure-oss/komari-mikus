@@ -576,7 +576,8 @@
     flex: 1 1 0;
     min-width: 0;
     height: 6px;
-    border-radius: 1.5px;
+    /* 胶囊形：半径取高度一半，两端全圆 */
+    border-radius: 3px;
     background: var(--border-light);
 }
 
