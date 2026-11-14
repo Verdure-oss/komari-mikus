@@ -5,7 +5,7 @@
  * @exports formatBytes, formatSpeed, formatPercent, formatAxisSpeed, getSpeedAxisUnit, formatAxisCount, getCountAxisUnit, formatUptime, formatExpiry, formatPrice, formatPing, formatOS
  */
 
-import { t } from '../i18n/index.aa4b463b.js';
+import { t } from '../i18n/index.57cc9d99.js';
 
 /**
  * 格式化字节数

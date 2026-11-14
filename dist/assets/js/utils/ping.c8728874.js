@@ -106,38 +106,90 @@ function appendLatest(bars, latest, barCount) {
 }
 
 /**
- * 按任务分组采样历史延迟，得到每路的波动序列。
- * records 按时间升序，取最近 barCount 个值；不足时左侧补 null，
- * 使各任务条对齐到同一时间窗右端。
- * @param {string} uuid - 节点 UUID
- * @param {number} barCount - 格数
- * @returns {Object} taskId(String) → Array<number|null>
+ * 把当前丢包率接到丢包序列末尾，与延迟条同步滚动
  */
-function collectPingHistory(uuid, barCount) {
+function appendLatestLoss(bars, latestLoss, barCount) {
+    const src = bars ? bars.slice() : [];
+    if (latestLoss === null || latestLoss === undefined || isNaN(latestLoss)) return src;
+    if (src.length > 0 && src[src.length - 1] === latestLoss) return src;
+    src.push(latestLoss);
+    return src.length > barCount ? src.slice(src.length - barCount) : src;
+}
+
+/**
+ * 把某节点的历史采样按时间分桶，得到每路的「延迟序列」与「丢包序列」。
+ * komari 用 value < 0 表示该次探测丢包：同桶内全为负则该格视为断线（延迟 -1），
+ * 部分为负则记为该桶丢包百分比。两条彩条共用同一时间窗，逐格对齐。
+ * @param {string} uuid - 节点 UUID
+ * @param {number} barCount - 桶数量
+ * @returns {Object} taskId(String) → { latency: Array<number|null>, loss: Array<number|null> }
+ */
+function collectPingBars(uuid, barCount) {
     const pingInfo = state.pingData[uuid];
-    if (!pingInfo || !pingInfo.records || pingInfo.records.length === 0) return {};
+    if (!pingInfo) return {};
+
+    // 优先用保留负值的 samples；旧缓存可能没有该字段，回退到 records
+    const src = (pingInfo.samples && pingInfo.samples.length > 0)
+        ? pingInfo.samples
+        : pingInfo.records;
+    if (!src || src.length === 0) return {};
 
     const byTask = {};
-    pingInfo.records.forEach(function (r) {
-        if (r.value === null || r.value === undefined || r.value < 0) return;
+    src.forEach(function (r) {
         const key = String(r.task_id);
         if (!byTask[key]) byTask[key] = [];
-        byTask[key].push(r.value);
+        byTask[key].push({ t: new Date(r.time).getTime(), v: r.value });
     });
 
     const out = {};
     Object.keys(byTask).forEach(function (key) {
-        const values = byTask[key];
-        if (values.length === 0) { out[key] = []; return; }
+        const rows = byTask[key];
+        if (rows.length === 0) return;
 
-        const slice = values.slice(Math.max(0, values.length - barCount));
-        const bars = [];
-        for (let i = 0; i < barCount - slice.length; i++) bars.push(null);
-        slice.forEach(function (v) { bars.push(v); });
-        out[key] = bars;
+        const first = rows[0].t;
+        const last = rows[rows.length - 1].t;
+        const span = Math.max(1, last - first);
+        const bucketSize = Math.max(1, span / barCount);
+
+        const latency = [];
+        const loss = [];
+
+        for (let i = 0; i < barCount; i++) {
+            const lo = first + bucketSize * i;
+            const hi = (i === barCount - 1) ? last + 1 : lo + bucketSize;
+            const bucket = rows.filter(function (r) { return r.t >= lo && r.t < hi; });
+
+            if (bucket.length === 0) {
+                latency.push(null);
+                loss.push(null);
+                continue;
+            }
+
+            const valid = bucket.filter(function (r) { return r.v >= 0; });
+            latency.push(valid.length === 0
+                ? -1
+                : valid.reduce(function (a, r) { return a + r.v; }, 0) / valid.length);
+            loss.push(((bucket.length - valid.length) / bucket.length) * 100);
+        }
+
+        out[key] = { latency: latency, loss: loss };
     });
 
     return out;
+}
+
+/**
+ * 丢包率分级，供数值着色使用
+ * @param {number|null} lossPct - 丢包百分比
+ * @returns {string} 等级名
+ */
+export function getLossLevel(lossPct) {
+    if (lossPct === null || lossPct === undefined) return 'normal';
+    if (lossPct <= 0) return 'excellent';
+    if (lossPct < 3) return 'normal';
+    if (lossPct < 8) return 'warning';
+    if (lossPct < 20) return 'fair';
+    return 'danger';
 }
 
 /**
@@ -151,7 +203,7 @@ export function getPingTaskList(pingMap, uuid, bars) {
     if (!pingMap) return [];
 
     const barCount = bars === undefined ? PING_BAR_COUNT : bars;
-    const history = (uuid && barCount > 0) ? collectPingHistory(uuid, barCount) : {};
+    const series = (uuid && barCount > 0) ? collectPingBars(uuid, barCount) : {};
 
     const list = [];
     Object.keys(pingMap).forEach(function (taskId) {
@@ -169,8 +221,10 @@ export function getPingTaskList(pingMap, uuid, bars) {
             ms: ms,
             lossPct: lossPct,
             level: getPingLevel(ms),
+            lossLevel: getLossLevel(lossPct),
             failed: failed,
-            bars: appendLatest(history[String(taskId)], ms, barCount)
+            bars: appendLatest((series[String(taskId)] || {}).latency, ms, barCount),
+            lossBars: appendLatestLoss((series[String(taskId)] || {}).loss, lossPct, barCount)
         });
     });
 

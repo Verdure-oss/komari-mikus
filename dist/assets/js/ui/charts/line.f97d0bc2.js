@@ -1,10 +1,9 @@
 import { state } from '../../core/state.05f8be33.js';
 import { getCachedFontFamily } from '../../utils/color.62e2d5be.js';
-import { formatSpeed } from '../../utils/format.f3ad0a55.js';
 import { formatTimeLabel, timeRangeToHours } from '../../utils/time.855ab1d3.js';
-import { showChartTooltip, createHideHandler } from './tooltip.1466981b.js';
+import { showChartTooltip, createHideHandler } from './tooltip.d718f3d0.js';
 
-export function drawNetworkChart(canvasId, records, hours) {
+export function drawLineChart(canvasId, records, valueFn, minVal, maxVal, color, label, hours) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
@@ -24,7 +23,7 @@ export function drawNetworkChart(canvasId, records, hours) {
 
     const w = rect.width;
     const h = rect.height;
-    const padding = { top: 24, right: 20, bottom: 32, left: 60 };
+    const padding = { top: 24, right: 20, bottom: 32, left: 50 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
@@ -33,11 +32,6 @@ export function drawNetworkChart(canvasId, records, hours) {
     const cs = getComputedStyle(document.documentElement);
     const gridColor = cs.getPropertyValue('--chart-grid').trim();
     const textColor = cs.getPropertyValue('--chart-text').trim();
-
-    const upValues = records.map(function (r) { return r.net_out || 0; });
-    const downValues = records.map(function (r) { return r.net_in || 0; });
-    let maxVal = Math.max(Math.max.apply(null, upValues), Math.max.apply(null, downValues), 1024);
-    maxVal = Math.ceil(maxVal / 1024) * 1024;
 
     // 批量绘制网格线
     ctx.beginPath();
@@ -57,38 +51,39 @@ export function drawNetworkChart(canvasId, records, hours) {
     ctx.textAlign = 'right';
     for (let i = 0; i <= 4; i++) {
         const y = padding.top + (chartH / 4) * i;
-        ctx.fillText(formatSpeed(maxVal * (1 - i / 4)), padding.left - 8, y + 4);
+        const val = maxVal - (maxVal - minVal) * (i / 4);
+        ctx.fillText(val.toFixed(0) + '%', padding.left - 8, y + 4);
     }
 
-    const baseY = padding.top + chartH;
+    const range = maxVal - minVal || 1;
     const stepX = chartW / Math.max(records.length - 1, 1);
+    const baseY = padding.top + chartH;
 
-    function drawNetLine(values, color) {
-        const points = [];
-        for (let j = 0; j < values.length; j++) {
-            if (values[j] === null || values[j] === undefined || isNaN(values[j])) continue;
-            const x = padding.left + j * stepX;
-            const normalized = Math.max(0, Math.min(1, values[j] / maxVal));
-            const y = baseY - normalized * chartH;
-            points.push(x, y);
-        }
+    const validPoints = [];
+    for (let j = 0; j < records.length; j++) {
+        const v = valueFn(records[j]);
+        if (v === null || v === undefined || isNaN(v)) continue;
+        const x = padding.left + j * stepX;
+        const normalized = Math.max(0, Math.min(1, (v - minVal) / range));
+        const y = baseY - normalized * chartH;
+        validPoints.push(x, y);
+    }
 
-        const pointCount = points.length >> 1;
-        if (pointCount < 2) return points;
-
+    const pointCount = validPoints.length >> 1;
+    if (pointCount > 1) {
         ctx.beginPath();
-        ctx.moveTo(points[0], points[1]);
+        ctx.moveTo(validPoints[0], validPoints[1]);
 
         if (pointCount > 50) {
-            for (let k = 2; k < points.length; k += 2) {
-                ctx.lineTo(points[k], points[k + 1]);
+            for (let k = 2; k < validPoints.length; k += 2) {
+                ctx.lineTo(validPoints[k], validPoints[k + 1]);
             }
         } else {
-            for (let k = 2; k < points.length; k += 2) {
-                const prevX = points[k - 2];
-                const prevY = points[k - 1];
-                const currX = points[k];
-                const currY = points[k + 1];
+            for (let k = 2; k < validPoints.length; k += 2) {
+                const prevX = validPoints[k - 2];
+                const prevY = validPoints[k - 1];
+                const currX = validPoints[k];
+                const currY = validPoints[k + 1];
                 const midX = (prevX + currX) * 0.5;
                 ctx.quadraticCurveTo(midX, prevY, midX, (prevY + currY) * 0.5);
                 ctx.quadraticCurveTo(midX, currY, currX, currY);
@@ -101,23 +96,34 @@ export function drawNetworkChart(canvasId, records, hours) {
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        const lastIdx = points.length - 2;
-        ctx.lineTo(points[lastIdx], baseY);
-        ctx.lineTo(points[0], baseY);
+        const lastIdx = validPoints.length - 2;
+        ctx.lineTo(validPoints[lastIdx], baseY);
+        ctx.lineTo(validPoints[0], baseY);
         ctx.closePath();
 
         const gradient = ctx.createLinearGradient(0, padding.top, 0, baseY);
-        gradient.addColorStop(0, color + '35');
-        gradient.addColorStop(0.5, color + '12');
+        gradient.addColorStop(0, color + '40');
+        gradient.addColorStop(0.5, color + '15');
         gradient.addColorStop(1, color + '02');
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        return points;
+        const dotInterval = Math.ceil(pointCount / 20);
+        for (let di = 0; di < pointCount; di++) {
+            if (di % dotInterval === 0 || di === pointCount - 1) {
+                const px = validPoints[di * 2];
+                const py = validPoints[di * 2 + 1];
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = cs.getPropertyValue('--chart-dot-center').trim();
+                ctx.fill();
+            }
+        }
     }
-
-    const upPoints = drawNetLine(upValues, cs.getPropertyValue('--chart-network-up').trim());
-    const downPoints = drawNetLine(downValues, cs.getPropertyValue('--chart-network-down').trim());
 
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
@@ -143,12 +149,14 @@ export function drawNetworkChart(canvasId, records, hours) {
     }
 
     canvas._chartData = {
-        type: 'network',
+        type: 'line',
         records: records,
-        hours: renderHours,
+        valueFn: valueFn,
+        label: label,
         padding: padding,
-        upPoints: upPoints,
-        downPoints: downPoints
+        validPoints: validPoints,
+        color: color,
+        hours: renderHours
     };
 
     if (!canvas._chartEventsBound) {

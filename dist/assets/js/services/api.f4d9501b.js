@@ -8,8 +8,8 @@
 import { state, historyCache, pingCache, getCachedData, setCachedData } from '../core/state.05f8be33.js';
 import { RPC_METHODS, MAX_HISTORY_POINTS, BATCH_CONCURRENCY, RECENT_RECORDS_LIMIT, PING_DEFAULT_HOURS } from '../core/constants.769eca5e.js';
 import { showErrorToast } from '../core/error-boundary.10a24eab.js';
-import { trimRecords, getApiBase } from '../utils/helpers.a7d401e6.js';
-import { t } from '../i18n/index.aa4b463b.js';
+import { trimRecords, getApiBase } from '../utils/helpers.7db83e02.js';
+import { t } from '../i18n/index.57cc9d99.js';
 import { flattenRecentRecords, mergeAndDedupRecords, forwardFillTotals } from '../algorithms/record-transforms.072fa001.js';
 
 /**
@@ -330,6 +330,9 @@ export function loadPingHistory(uuid, hours) {
             }
 
             const records = [];
+            // 保留负值（探测丢包）的完整序列，仅用于卡片波动条换算每格丢包率。
+            // records 仍是「仅有效值」，不影响图表与详情页的既有语义。
+            const samples = [];
             const series = metricResult && metricResult.series ? metricResult.series : [];
 
             series.forEach(function(s) {
@@ -338,19 +341,28 @@ export function loadPingHistory(uuid, hours) {
                 const points = s.points || [];
 
                 points.forEach(function(point) {
-                    if (typeof point.value === 'number' && point.value >= 0) {
-                        records.push({
+                    if (typeof point.value === 'number') {
+                        samples.push({
                             time: point.time,
                             value: point.value,
                             task_id: taskId
                         });
+                        if (point.value >= 0) {
+                            records.push({
+                                time: point.time,
+                                value: point.value,
+                                task_id: taskId
+                            });
+                        }
                     }
                 });
             });
 
-            records.sort(function(a, b) {
+            const byTime = function(a, b) {
                 return new Date(a.time) - new Date(b.time);
-            });
+            };
+            records.sort(byTime);
+            samples.sort(byTime);
 
             Object.keys(taskMap).forEach(function(taskId) {
                 if (statsMap[taskId]) {
@@ -366,6 +378,7 @@ export function loadPingHistory(uuid, hours) {
 
             const pingData = {
                 records: records,
+                samples: samples,
                 tasks: tasks
             };
 

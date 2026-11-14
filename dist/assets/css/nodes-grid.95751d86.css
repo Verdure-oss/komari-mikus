@@ -474,58 +474,59 @@
     color: var(--accent);
 }
 
-/* 三网延迟明细：任务名 / 延迟 / 波动条 / 丢包率 */
+/* 三网延迟：每条监测点一段——头部一行数值，下方两条彩条并排 */
 .node-ping-tasks {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 10px;
     margin-top: 14px;
     padding-top: 10px;
     border-top: 1px dashed var(--border-light);
 }
 
-.ping-task-row {
-    display: grid;
-    grid-template-columns: 2.6em auto minmax(0, 1fr) 2.9em;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.72rem;
-    line-height: 1.6;
+.ping-task-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.ping-task-row.is-failed .ping-task-name {
-    color: var(--text-tertiary);
+/* 头部：名称靠左，延迟与丢包靠右 */
+.ping-task-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: baseline;
+    gap: 10px;
 }
 
 .ping-task-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.72rem;
     color: var(--text-secondary);
 }
 
-.ping-task-ms {
+.ping-task-group.is-failed .ping-task-name {
+    color: var(--text-tertiary);
+}
+
+.ping-task-lat,
+.ping-task-loss {
     font-family: var(--font-mono);
     font-weight: 700;
+    font-size: 0.72rem;
     white-space: nowrap;
-    min-width: 3.2em;
+    min-width: 3em;
     text-align: right;
 }
 
-.ping-task-ms.level-excellent,
-.ping-task-ms.level-normal {
-    color: var(--success);
+/* 两条彩条等宽并排（左延迟 / 右丢包），中间留明显缝隙 */
+.ping-task-tracks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
 }
 
-.ping-task-ms.level-warning {
-    color: var(--warning);
-}
-
-.ping-task-ms.level-danger {
-    color: var(--danger);
-}
-
-/* 波动条：每格一次探测，颜色随延迟升高由绿转黄转红 */
 .ping-bars {
     display: flex;
     align-items: center;
@@ -536,11 +537,16 @@
 
 .ping-bar-cell {
     flex: 1 1 0;
-    min-width: 3px;
-    height: 10px;
+    min-width: 2px;
+    height: 9px;
     border-radius: 2px;
     background: var(--border-light);
-    transition: opacity var(--transition-fast);
+}
+
+/* 通用于数值与格子 */
+.level-excellent,
+.level-normal {
+    color: var(--success);
 }
 
 .ping-bar-cell.level-excellent,
@@ -552,6 +558,10 @@
     background: var(--warning);
 }
 
+.ping-bar-cell.level-fair {
+    background: #ef8b3f;
+}
+
 .ping-bar-cell.level-danger {
     background: var(--danger);
 }
@@ -561,21 +571,23 @@
     opacity: 0.55;
 }
 
+.ping-task-lat.level-warning,
+.ping-task-loss.level-warning {
+    color: var(--warning);
+}
+
+.ping-task-lat.level-fair,
+.ping-task-loss.level-fair {
+    color: #ef8b3f;
+}
+
+.ping-task-lat.level-danger,
+.ping-task-loss.level-danger {
+    color: var(--danger);
+}
+
 .ping-bars-empty {
-    height: 10px;
-}
-
-/* 本轮探测失败：历史保留但整条压暗 */
-.ping-bars.is-failed .ping-bar-cell {
-    opacity: 0.45;
-}
-
-.ping-task-loss {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--text-tertiary);
-    text-align: right;
-    white-space: nowrap;
+    height: 9px;
 }
 
 .network-dir {

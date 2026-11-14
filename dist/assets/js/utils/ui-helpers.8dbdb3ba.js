@@ -6,7 +6,7 @@
  */
 
 import { state } from '../core/state.05f8be33.js';
-import { i18n } from '../i18n/index.aa4b463b.js';
+import { i18n } from '../i18n/index.57cc9d99.js';
 
 /**
  * 获取问候语

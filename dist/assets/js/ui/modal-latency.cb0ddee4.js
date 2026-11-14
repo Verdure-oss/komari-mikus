@@ -7,10 +7,10 @@
 
 import { state } from '../core/state.05f8be33.js';
 import { PING_COLORS } from '../core/constants.769eca5e.js';
-import { t } from '../i18n/index.aa4b463b.js';
-import { formatPing } from '../utils/format.f3ad0a55.js';
-import { escapeHtml, getPingLevel, getTaskLatestPing } from '../utils/helpers.a7d401e6.js';
-import { getModalElements } from './modal.87e99526.js';
+import { t } from '../i18n/index.57cc9d99.js';
+import { formatPing } from '../utils/format.3f66f67a.js';
+import { escapeHtml, getPingLevel, getTaskLatestPing } from '../utils/helpers.7db83e02.js';
+import { getModalElements } from './modal.07f72b93.js';
 
 /**
  * 渲染延迟页（摘要 + 任务列表 + 图例）

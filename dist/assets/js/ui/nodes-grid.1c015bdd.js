@@ -6,11 +6,11 @@
  */
 
 import { state } from '../core/state.05f8be33.js';
-import { t } from '../i18n/index.aa4b463b.js';
-import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice, formatPing } from '../utils/format.f3ad0a55.js';
-import { escapeHtml, parseTagInfo, getPingLevel } from '../utils/helpers.a7d401e6.js';
-import { openNodeModal } from './modal.87e99526.js';
-import { getFilteredNodes, calculateNodeMetrics } from './nodes.f5da3a66.js';
+import { t } from '../i18n/index.57cc9d99.js';
+import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice, formatPing } from '../utils/format.3f66f67a.js';
+import { escapeHtml, parseTagInfo, getPingLevel } from '../utils/helpers.7db83e02.js';
+import { openNodeModal } from './modal.07f72b93.js';
+import { getFilteredNodes, calculateNodeMetrics } from './nodes.f883715e.js';
 
 /**
  * 渲染指标进度条
@@ -47,20 +47,25 @@ export function renderPingTasks(metrics, showPing) {
 
     tasks.forEach(function (task) {
         const msText = task.failed ? t('ping_failed') : formatPing(task.ms);
-        const lossText = task.lossPct !== null && task.lossPct !== undefined
-            ? task.lossPct.toFixed(1) + '%'
-            : '-';
+        const hasLoss = task.lossPct !== null && task.lossPct !== undefined;
+        const lossText = hasLoss ? task.lossPct.toFixed(1) + '%' : '-';
 
-        let title = task.name + ': ' + msText;
-        if (task.lossPct !== null && task.lossPct !== undefined) {
+        let title = task.name + ' · ' + t('ping') + ' ' + msText;
+        if (hasLoss) {
             title += ' · ' + t('packet_loss') + ' ' + task.lossPct.toFixed(1) + '%';
         }
 
-        html += '<div class="ping-task-row' + (task.failed ? ' is-failed' : '') + '" title="' + escapeHtml(title) + '">';
+        // 与 carbon 一致：上方一行「名称 + 延迟值 + 丢包值」，下方两条彩条并排
+        html += '<div class="ping-task-group' + (task.failed ? ' is-failed' : '') + '" title="' + escapeHtml(title) + '">';
+        html += '<div class="ping-task-head">';
         html += '<span class="ping-task-name">' + escapeHtml(task.name) + '</span>';
-        html += '<span class="ping-task-ms level-' + task.level + '">' + msText + '</span>';
-        html += renderPingBars(task);
-        html += '<span class="ping-task-loss">' + lossText + '</span>';
+        html += '<span class="ping-task-lat level-' + task.level + '">' + msText + '</span>';
+        html += '<span class="ping-task-loss level-' + task.lossLevel + '">' + lossText + '</span>';
+        html += '</div>';
+        html += '<div class="ping-task-tracks">';
+        html += renderBars(task.bars, 'latency');
+        html += renderBars(task.lossBars, 'loss');
+        html += '</div>';
         html += '</div>';
     });
 
@@ -70,32 +75,40 @@ export function renderPingTasks(metrics, showPing) {
 }
 
 /**
- * 按延迟值给波动条格子分级着色，阈值与 getPingLevel 一致
- * @param {number|null} value - 延迟值（毫秒）
- * @returns {string} 等级名
+ * 延迟分级：与 getPingLevel 一致；负值代表该格全部探测失败
  */
-function pingBarLevel(value) {
+function latencyBarLevel(value) {
     if (value === null || value === undefined) return 'empty';
+    if (value < 0) return 'danger';
     return getPingLevel(value);
 }
 
 /**
- * 渲染一路延迟的波动条（近 N 次探测的分布）
- * 每格一次探测，颜色随延迟升高由绿转黄转红，直观反映抖动。
- * @param {Object} task - 任务对象，含 bars 数组
+ * 丢包分级：0 绿、<3% 正常、<8% 黄、<20% 橙、其余红
+ */
+function lossBarLevel(value) {
+    if (value === null || value === undefined) return 'empty';
+    if (value <= 0) return 'excellent';
+    if (value < 3) return 'normal';
+    if (value < 8) return 'warning';
+    if (value < 20) return 'fair';
+    return 'danger';
+}
+
+/**
+ * 渲染一条彩条
+ * @param {Array<number|null>} bars - 序列
+ * @param {string} metric - 'latency' | 'loss'
  * @returns {string} HTML
  */
-function renderPingBars(task) {
-    const bars = task.bars || [];
-    if (bars.length === 0) {
-        return '<span class="ping-bars ping-bars-empty"></span>';
-    }
+function renderBars(bars, metric) {
+    const list = bars || [];
+    if (list.length === 0) return '<span class="ping-bars ping-bars-empty"></span>';
 
-    // 本轮探测失败时整条压暗，但保留历史走势——比留白信息量更大
-    const failedClass = task.failed ? ' is-failed' : '';
-    let html = '<span class="ping-bars' + failedClass + '">';
-    bars.forEach(function (v) {
-        html += '<i class="ping-bar-cell level-' + pingBarLevel(v) + '"></i>';
+    const levelOf = metric === 'loss' ? lossBarLevel : latencyBarLevel;
+    let html = '<span class="ping-bars">';
+    list.forEach(function (v) {
+        html += '<i class="ping-bar-cell level-' + levelOf(v) + '"></i>';
     });
     html += '</span>';
     return html;
