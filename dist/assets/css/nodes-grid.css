@@ -474,40 +474,58 @@
     color: var(--accent);
 }
 
-.node-ping {
-    margin-left: auto;
-    flex-shrink: 0;
+/* 三网延迟明细（每个监测任务一行：名称 / 延迟 / 丢包率） */
+.node-ping-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-light);
+}
+
+.ping-task-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
+.ping-task-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.ping-task-ms {
     font-family: var(--font-mono);
     font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 0.72rem;
     white-space: nowrap;
-    transition: transform 0.2s ease;
 }
 
-.node-card:hover .node-ping {
-    transform: translateY(-1px);
-}
-
-.node-ping.level-excellent {
+.ping-task-ms.level-excellent,
+.ping-task-ms.level-normal {
     color: var(--success);
-    background: var(--success-light);
 }
 
-.node-ping.level-normal {
-    color: var(--success);
-    background: var(--success-light);
-}
-
-.node-ping.level-warning {
+.ping-task-ms.level-warning {
     color: var(--warning);
-    background: var(--warning-light);
 }
 
-.node-ping.level-danger {
+.ping-task-ms.level-danger {
     color: var(--danger);
-    background: var(--danger-light);
+}
+
+.ping-task-loss {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+    min-width: 44px;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .network-dir {

@@ -8,5 +8,5 @@ export { escapeHtml, parseTagInfo } from './html.js';
 export { getGreeting, resetAnimation, isMobileDevice, getUsageLevel, getShortOs } from './ui-helpers.js';
 export { trimRecords, getMaxDataPoints } from './data-trim.js';
 export { parseFlagEmoji, getCountryCode, getCountryFlagUrl, getCountryFlag } from './flag.js';
-export { getLatestPing, getPingTasks, getTaskLatestPing, getPingLevel, getRealtimePing, summarizePing } from './ping.js';
+export { getLatestPing, getPingTasks, getTaskLatestPing, getPingLevel, getRealtimePing, summarizePing, getPingTaskList } from './ping.js';
 export { getApiBase, getWsUrl } from './url.js';

@@ -2,7 +2,7 @@
  * @module utils/ping
  * @description 延迟/Ping 相关辅助函数
  * @dependencies core/state.js
- * @exports getLatestPing, getPingTasks, getTaskLatestPing, getPingLevel, getRealtimePing, summarizePing
+ * @exports getLatestPing, getPingTasks, getTaskLatestPing, getPingLevel, getRealtimePing, summarizePing, getPingTaskList
  */
 
 import { state } from '../core/state.js';
@@ -87,6 +87,39 @@ export function summarizePing(pingMap) {
         taskCount: taskCount,
         validCount: latencies.length
     };
+}
+
+/**
+ * 提取每个监测任务的明细（三网：电信/移动/联通等）
+ * 保持 komari 返回的任务顺序，便于卡片稳定展示。
+ * komari 用 latest = -1 表示本轮探测失败，此时保留该任务并标记 failed。
+ * @param {Object|null} pingMap - 实时轮询的 ping 映射
+ * @returns {Array} [{ id, name, ms, lossPct, level, failed }]
+ */
+export function getPingTaskList(pingMap) {
+    if (!pingMap) return [];
+
+    const list = [];
+    Object.keys(pingMap).forEach(function (taskId) {
+        const task = pingMap[taskId];
+        if (!task) return;
+
+        const latest = typeof task.latest === 'number' ? task.latest : null;
+        const failed = latest === null || latest < 0;
+        const ms = failed ? null : latest;
+        const lossPct = typeof task.loss === 'number' && !isNaN(task.loss) ? task.loss : null;
+
+        list.push({
+            id: taskId,
+            name: task.name || ('任务 ' + taskId),
+            ms: ms,
+            lossPct: lossPct,
+            level: getPingLevel(ms),
+            failed: failed
+        });
+    });
+
+    return list;
 }
 
 /**

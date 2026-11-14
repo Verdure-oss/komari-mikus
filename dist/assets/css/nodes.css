@@ -112,18 +112,6 @@ body.has-custom-background .node-expiry.level-normal {
     background: rgba(var(--bg-card-rgb), 0.5);
 }
 
-body.has-custom-background .node-ping.level-normal {
-    background: rgba(76, 175, 125, 0.12);
-}
-
-body.has-custom-background .node-ping.level-warning {
-    background: rgba(245, 166, 35, 0.12);
-}
-
-body.has-custom-background .node-ping.level-danger {
-    background: rgba(231, 76, 94, 0.12);
-}
-
 body.has-custom-background .table-card-metric-bar {
     background: rgba(var(--border-color-rgb), 0.25);
 }
@@ -214,9 +202,13 @@ body.has-custom-background .table-flag-placeholder {
         padding: 2px 6px;
     }
 
-    .node-ping {
+    .ping-task-row {
         font-size: 0.68rem;
-        padding: 2px 6px;
+    }
+
+    .ping-task-loss {
+        font-size: 0.64rem;
+        min-width: 40px;
     }
 
     .network-dir {
@@ -438,8 +430,7 @@ body.has-custom-background .table-flag-placeholder {
 
     .node-card:hover .node-card-flag,
     .node-card:hover .node-api-tag,
-    .node-card:hover .node-expiry,
-    .node-card:hover .node-ping {
+    .node-card:hover .node-expiry {
         transform: none;
     }
 

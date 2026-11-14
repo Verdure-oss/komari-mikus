@@ -31,48 +31,50 @@ function renderMetricBar(label, value, level) {
 }
 
 /**
- * 生成延迟徽章的悬浮提示文本
- * @param {Object} metrics - 指标数据
- * @returns {string} title 文本
- */
-export function buildPingTitle(metrics) {
-    let title = formatPing(metrics.pingMs);
-    const details = [];
-    if (metrics.pingTaskCount > 0) {
-        details.push(metrics.pingTaskCount + ' 项任务均值');
-    }
-    if (metrics.pingLoss !== null && metrics.pingLoss !== undefined) {
-        details.push('丢包 ' + metrics.pingLoss.toFixed(1) + '%');
-    }
-    if (details.length > 0) {
-        title += ' · ' + details.join(' · ');
-    }
-    return title;
-}
-
-/**
- * 渲染延迟徽章（卡片头部右侧）
- * 仅在存在有效延迟时输出，避免无监测任务的节点出现「-」
+ * 渲染三网延迟明细（每个监测任务一行：名称 + 延迟 + 丢包率）
+ * 无监测任务时不输出该区域。
  * @param {Object} metrics - 指标数据
  * @param {boolean} showPing - 是否显示延迟
  * @returns {string} HTML
  */
-export function renderPingBadge(metrics, showPing) {
+export function renderPingTasks(metrics, showPing) {
     if (!showPing) return '';
-    if (metrics.pingMs === null || metrics.pingMs === undefined) return '';
 
-    return '<span class="node-ping level-' + metrics.pingLevel + '" title="' +
-        escapeHtml(buildPingTitle(metrics)) + '">' + formatPing(metrics.pingMs) + '</span>';
+    const tasks = metrics.pingTasks || [];
+    if (tasks.length === 0) return '';
+
+    let html = '<div class="node-ping-tasks">';
+
+    tasks.forEach(function (task) {
+        const msText = task.failed ? t('ping_failed') : formatPing(task.ms);
+        const lossText = task.lossPct !== null && task.lossPct !== undefined
+            ? task.lossPct.toFixed(1) + '%'
+            : '-';
+
+        let title = task.name + ': ' + msText;
+        if (task.lossPct !== null && task.lossPct !== undefined) {
+            title += ' · ' + t('packet_loss') + ' ' + task.lossPct.toFixed(1) + '%';
+        }
+
+        html += '<div class="ping-task-row" title="' + escapeHtml(title) + '">';
+        html += '<span class="ping-task-name">' + escapeHtml(task.name) + '</span>';
+        html += '<span class="ping-task-ms level-' + task.level + '">' + msText + '</span>';
+        html += '<span class="ping-task-loss">' + lossText + '</span>';
+        html += '</div>';
+    });
+
+    html += '</div>';
+
+    return html;
 }
 
 /**
  * 渲染节点卡片头部（国旗 + 名称 + OS + 标签）
  * @param {Object} node - 节点对象
  * @param {Object} metrics - 指标数据
- * @param {boolean} showPing - 是否显示延迟
  * @returns {string} HTML
  */
-function renderNodeCardHeader(node, metrics, showPing) {
+function renderNodeCardHeader(node, metrics) {
     let html = '<div class="node-card-header">';
 
     if (metrics.flagUrl) {
@@ -100,8 +102,6 @@ function renderNodeCardHeader(node, metrics, showPing) {
 
     html += '</div>';
     html += '</div>';
-
-    html += renderPingBadge(metrics, showPing);
 
     html += '</div>';
 
@@ -220,10 +220,11 @@ function renderNodeCard(node, metrics, showUptime, showNetwork, showTrafficTags,
     let html = '';
 
     html += '<div class="node-card' + (metrics.isOnline ? '' : ' offline') + (state.initialRender ? ' animate-in' : '') + '" data-uuid="' + node.uuid + '">';
-    html += renderNodeCardHeader(node, metrics, showPing);
+    html += renderNodeCardHeader(node, metrics);
     html += '<div class="node-card-metrics">';
     html += renderNodeMetrics(metrics);
     html += '</div>';
+    html += renderPingTasks(metrics, showPing);
     html += renderNodeCardFooter(node, metrics, showUptime, showNetwork, showTrafficTags);
     html += '</div>';
 
@@ -266,23 +267,26 @@ export function updateGridRealtime() {
         const metrics = calculateNodeMetrics(node);
         const metricsEl = card.querySelector('.node-card-metrics');
         const footerEl = card.querySelector('.node-card-footer');
-        const headerEl = card.querySelector('.node-card-header');
         const statusDot = card.querySelector('.node-status-dot');
 
         if (metricsEl) metricsEl.innerHTML = renderNodeMetrics(metrics);
         if (footerEl) footerEl.innerHTML = renderNodeCardFooterContent(node, metrics, showUptime, showNetwork, showTrafficTags);
 
-        // 延迟徽章随实时数据刷新
-        if (headerEl) {
-            const badgeEl = headerEl.querySelector('.node-ping');
-            if (metrics.pingMs === null || metrics.pingMs === undefined || !showPing) {
-                if (badgeEl) badgeEl.remove();
-            } else if (badgeEl) {
-                badgeEl.className = 'node-ping level-' + metrics.pingLevel;
-                badgeEl.textContent = formatPing(metrics.pingMs);
-                badgeEl.title = buildPingTitle(metrics);
+        // 三网延迟明细随实时数据刷新（整体替换，任务增删也能同步）
+        const oldPingEl = card.querySelector('.node-ping-tasks');
+        const pingHtml = renderPingTasks(metrics, showPing);
+        if (oldPingEl) {
+            if (pingHtml) {
+                oldPingEl.outerHTML = pingHtml;
             } else {
-                headerEl.insertAdjacentHTML('beforeend', renderPingBadge(metrics, showPing));
+                oldPingEl.remove();
+            }
+        } else if (pingHtml) {
+            const anchor = footerEl || null;
+            if (anchor) {
+                anchor.insertAdjacentHTML('beforebegin', pingHtml);
+            } else {
+                card.insertAdjacentHTML('beforeend', pingHtml);
             }
         }
 

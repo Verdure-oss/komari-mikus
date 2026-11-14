@@ -7,9 +7,9 @@
 import assert from 'node:assert/strict';
 import { formatTooltipTime, positionTooltip } from '../dist/assets/js/ui/charts/tooltip.js';
 import { calculateNodeMetrics } from '../dist/assets/js/ui/nodes.js';
-import { renderGrid, updateGridRealtime, renderPingBadge } from '../dist/assets/js/ui/nodes-grid.js';
+import { renderGrid, updateGridRealtime, renderPingTasks } from '../dist/assets/js/ui/nodes-grid.js';
 import { renderTable, updateTableRealtime } from '../dist/assets/js/ui/nodes-table.js';
-import { summarizePing } from '../dist/assets/js/utils/ping.js';
+import { summarizePing, getPingTaskList } from '../dist/assets/js/utils/ping.js';
 import { state } from '../dist/assets/js/core/state.js';
 
 let passed = 0;
@@ -557,35 +557,83 @@ test('既无实时也无历史延迟时 pingMs 为 null', function() {
     assert.strictEqual(m.pingMs, null);
 });
 
-// ── 延迟徽章渲染 ──────────────────────────────────────────────────
+// ── 三网延迟明细渲染 ──────────────────────────────────────────────
 
-console.log('\nping badge rendering:');
+console.log('\nping task rows rendering:');
 
 function pingMetrics(overrides) {
     return Object.assign({
         pingMs: 51,
         pingLevel: 'normal',
         pingTaskCount: 3,
-        pingLoss: 4.2
+        pingLoss: 4.2,
+        pingTasks: [
+            { id: '2', name: '电信', ms: 74, lossPct: 14.75, level: 'normal', failed: false },
+            { id: '3', name: '移动', ms: 45, lossPct: 0, level: 'excellent', failed: false },
+            { id: '4', name: '联通', ms: 41, lossPct: 0, level: 'excellent', failed: false }
+        ]
     }, overrides || {});
 }
 
-test('renderPingBadge 输出带等级 class 的徽章', function() {
-    const html = renderPingBadge(pingMetrics(), true);
-    assert.match(html, /class="node-ping level-normal"/);
-    assert.match(html, />51ms</);
-    assert.match(html, /3 项任务均值/);
-    assert.match(html, /丢包 4\.2%/);
+test('renderPingTasks 每个监测任务输出一行，含名称/延迟/丢包', function() {
+    const html = renderPingTasks(pingMetrics(), true);
+    assert.match(html, /class="node-ping-tasks"/);
+    assert.strictEqual((html.match(/class="ping-task-row"/g) || []).length, 3);
+    assert.match(html, /电信/);
+    assert.match(html, /74ms/);
+    assert.match(html, /14\.8%/);   // 14.75 → toFixed(1)
+    assert.match(html, /移动/);
+    assert.match(html, /45ms/);
+    assert.match(html, /联通/);
+    assert.match(html, /41ms/);
 });
 
-test('renderPingBadge 在 showPing=false 或延迟为空时不输出', function() {
-    assert.strictEqual(renderPingBadge(pingMetrics(), false), '');
-    assert.strictEqual(renderPingBadge(pingMetrics({ pingMs: null }), true), '');
+test('renderPingTasks 按任务分级着色', function() {
+    const html = renderPingTasks(pingMetrics(), true);
+    assert.match(html, /class="ping-task-ms level-normal">74ms/);
+    assert.match(html, /class="ping-task-ms level-excellent">45ms/);
 });
 
-test('renderPingBadge 对名称/提示做 HTML 转义', function() {
-    const html = renderPingBadge(pingMetrics({ pingMs: 51 }), true);
-    assert.ok(html.indexOf('<script') === -1);
+test('renderPingTasks 在 showPing=false 或无任务时不输出', function() {
+    assert.strictEqual(renderPingTasks(pingMetrics(), false), '');
+    assert.strictEqual(renderPingTasks(pingMetrics({ pingTasks: [] }), true), '');
+});
+
+test('renderPingTasks 探测失败的任务显示超时而非 -1ms', function() {
+    const html = renderPingTasks(pingMetrics({
+        pingTasks: [{ id: '2', name: '电信', ms: null, lossPct: 100, level: 'normal', failed: true }]
+    }), true);
+    assert.match(html, /超时/);
+    assert.ok(html.indexOf('-1ms') === -1);
+});
+
+test('renderPingTasks 对任务名做 HTML 转义', function() {
+    const html = renderPingTasks(pingMetrics({
+        pingTasks: [{ id: '9', name: '<img src=x onerror=1>', ms: 10, lossPct: 0, level: 'excellent', failed: false }]
+    }), true);
+    assert.ok(html.indexOf('<img') === -1);
+    assert.match(html, /&lt;img/);
+});
+
+test('getPingTaskList 保持 komari 返回的任务顺序', function() {
+    const list = getPingTaskList({
+        '2': { name: '电信', latest: 74, loss: 0 },
+        '3': { name: '移动', latest: 45, loss: 0 },
+        '4': { name: '联通', latest: 41, loss: 0 }
+    });
+    assert.deepStrictEqual(list.map(function(x) { return x.name; }), ['电信', '移动', '联通']);
+});
+
+test('getPingTaskList 把 latest=-1 标记为 failed 并保留丢包', function() {
+    const list = getPingTaskList({ '2': { name: '电信', latest: -1, loss: 100 } });
+    assert.strictEqual(list[0].failed, true);
+    assert.strictEqual(list[0].ms, null);
+    assert.strictEqual(list[0].lossPct, 100);
+});
+
+test('getPingTaskList 空输入返回空数组', function() {
+    assert.deepStrictEqual(getPingTaskList(null), []);
+    assert.deepStrictEqual(getPingTaskList({}), []);
 });
 
 // ── Summary ───────────────────────────────────────────────────────

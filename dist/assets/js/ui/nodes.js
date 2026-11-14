@@ -8,7 +8,7 @@
 import { state } from '../core/state.js';
 import { t } from '../i18n/index.js';
 import { formatBytes, formatOS } from '../utils/format.js';
-import { escapeHtml, getLatestPing, getPingLevel, getRealtimePing, summarizePing, getCountryFlag, getShortOs, getUsageLevel } from '../utils/helpers.js';
+import { escapeHtml, getLatestPing, getPingLevel, getRealtimePing, summarizePing, getPingTaskList, getCountryFlag, getShortOs, getUsageLevel } from '../utils/helpers.js';
 import { updateGreetingSubtitle } from './preloader.js';
 import { renderGrid, updateGridRealtime } from './nodes-grid.js';
 import { renderTable, updateTableRealtime } from './nodes-table.js';
@@ -156,10 +156,12 @@ export function calculateNodeMetrics(node) {
     const uptime = rt.uptime || 0;
 
     // 延迟优先取实时轮询结果（有数据即用），历史数据作为回退
-    const pingSummary = summarizePing(getRealtimePing(node.uuid));
+    const realtimePing = getRealtimePing(node.uuid);
+    const pingSummary = summarizePing(realtimePing);
     const pingMs = pingSummary && pingSummary.avgMs !== null
         ? pingSummary.avgMs
         : getLatestPing(node.uuid);
+    const pingTasks = getPingTaskList(realtimePing);
 
     const load1 = rt.load ? rt.load.load1 : null;
 
@@ -210,6 +212,7 @@ export function calculateNodeMetrics(node) {
         pingLoss: pingSummary ? pingSummary.lossPct : null,
         pingTaskCount: pingSummary ? pingSummary.taskCount : 0,
         pingValidCount: pingSummary ? pingSummary.validCount : 0,
+        pingTasks: pingTasks,
         load1: load1,
         flagUrl: getCountryFlag(node.region),
         osShort: getShortOs(node.os),

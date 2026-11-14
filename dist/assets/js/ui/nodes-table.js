@@ -140,7 +140,8 @@ function renderTableCardTags(node, metrics, showTrafficTags, showPing) {
     const hasTags = node.tags && node.tags.split(';').filter(function(t) { return t.trim(); }).length > 0;
     const hasTraffic = showTrafficTags && (metrics.netTotalUp > 0 || metrics.netTotalDown > 0);
     const hasRemainingTraffic = metrics.trafficLimit > 0;
-    const hasPing = showPing && metrics.pingMs !== null && metrics.pingMs !== undefined;
+    const pingTasks = showPing ? (metrics.pingTasks || []) : [];
+    const hasPing = pingTasks.length > 0;
 
     if (!hasIpTags && !hasTags && !hasTraffic && !hasRemainingTraffic && !hasPing) {
         return '';
@@ -156,17 +157,16 @@ function renderTableCardTags(node, metrics, showTrafficTags, showPing) {
         html += '<span class="table-card-tag tag-ip tag-ipv6">IPv6</span>';
     }
 
-    if (hasPing) {
-        let pingTitle = formatPing(metrics.pingMs);
-        if (metrics.pingTaskCount > 0) {
-            pingTitle += ' · ' + metrics.pingTaskCount + ' 项任务均值';
+    // 三网延迟：每个监测任务一个标签，悬停看丢包
+    pingTasks.forEach(function (task) {
+        const msText = task.failed ? t('ping_failed') : formatPing(task.ms);
+        let pingTitle = task.name + ': ' + msText;
+        if (task.lossPct !== null && task.lossPct !== undefined) {
+            pingTitle += ' · ' + t('packet_loss') + ' ' + task.lossPct.toFixed(1) + '%';
         }
-        if (metrics.pingLoss !== null && metrics.pingLoss !== undefined) {
-            pingTitle += ' · 丢包 ' + metrics.pingLoss.toFixed(1) + '%';
-        }
-        html += '<span class="table-card-tag tag-ping level-' + metrics.pingLevel + '" title="' +
-            escapeHtml(pingTitle) + '">' + formatPing(metrics.pingMs) + '</span>';
-    }
+        html += '<span class="table-card-tag tag-ping level-' + task.level + '" title="' +
+            escapeHtml(pingTitle) + '">' + escapeHtml(task.name) + ' ' + msText + '</span>';
+    });
 
     if (hasTraffic) {
         html += '<span class="table-card-tag tag-traffic tag-upload" title="' + t('total_upload') + '">↑ ' + formatBytes(metrics.netTotalUp) + '</span>';
