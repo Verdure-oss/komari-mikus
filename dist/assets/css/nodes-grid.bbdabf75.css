@@ -575,9 +575,9 @@
 .ping-bar-cell {
     flex: 1 1 0;
     min-width: 0;
-    height: 6px;
-    /* 介于方形与胶囊之间：1.5px 偏方，3px 过圆 */
-    border-radius: 2px;
+    height: 8px;
+    /* 介于方形与胶囊之间：1.5px 偏方，3px 过圆；随高度等比放大 */
+    border-radius: 2.5px;
     background: var(--border-light);
 }
 
@@ -625,7 +625,7 @@
 }
 
 .ping-bars-empty {
-    height: 6px;
+    height: 8px;
 }
 
 .network-dir {
