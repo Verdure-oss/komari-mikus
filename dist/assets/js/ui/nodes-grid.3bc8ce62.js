@@ -10,7 +10,7 @@ import { t } from '../i18n/index.57cc9d99.js';
 import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice, formatPing } from '../utils/format.3f66f67a.js';
 import { escapeHtml, parseTagInfo, getPingLevel } from '../utils/helpers.7db83e02.js';
 import { openNodeModal } from './modal.07f72b93.js';
-import { getFilteredNodes, calculateNodeMetrics } from './nodes.aba78385.js';
+import { getFilteredNodes, calculateNodeMetrics } from './nodes.10e8a682.js';
 
 /**
  * 渲染指标进度条
@@ -55,35 +55,20 @@ export function renderPingTasks(metrics, showPing) {
             title += ' · ' + t('packet_loss') + ' ' + task.lossPct.toFixed(1) + '%';
         }
 
-        // 每路：名称独占一行，下面左右两列；每列内「数值在上、彩条在下」，
-        // 数值与彩条同处一列才能保证右边缘严格对齐
+        // 每路两行：第一行「名称 | 延迟值 | 丢包值」，第二行「空 | 延迟彩条 | 丢包彩条」。
+        // 两行共用同一套 grid 列宽，数值自然对齐到各自彩条的右边缘。
         html += '<div class="ping-task-group' + (task.failed ? ' is-failed' : '') + '" title="' + escapeHtml(title) + '">';
-        html += '<div class="ping-task-name">' + escapeHtml(task.name) + '</div>';
-        html += '<div class="ping-task-tracks">';
-        html += renderTrack(msText, task.level, task.bars, 'latency');
-        html += renderTrack(lossText, task.lossLevel, task.lossBars, 'loss');
-        html += '</div>';
+        html += '<span class="ping-task-name">' + escapeHtml(task.name) + '</span>';
+        html += '<span class="ping-track-value is-lat level-' + task.level + '">' + msText + '</span>';
+        html += '<span class="ping-track-value is-loss level-' + task.lossLevel + '">' + lossText + '</span>';
+        html += '<span class="ping-task-spacer"></span>';
+        html += renderBars(task.bars, 'latency', 'is-lat');
+        html += renderBars(task.lossBars, 'loss', 'is-loss');
         html += '</div>';
     });
 
     html += '</div>';
 
-    return html;
-}
-
-/**
- * 渲染一列「数值 + 彩条」。数值与彩条同列，右边缘自然对齐。
- * @param {string} valueText - 数值文本
- * @param {string} level - 等级
- * @param {Array<number|null>} bars - 序列
- * @param {string} metric - 'latency' | 'loss'
- * @returns {string} HTML
- */
-function renderTrack(valueText, level, bars, metric) {
-    let html = '<div class="ping-track">';
-    html += '<span class="ping-track-value level-' + level + '">' + valueText + '</span>';
-    html += renderBars(bars, metric);
-    html += '</div>';
     return html;
 }
 
@@ -114,12 +99,13 @@ function lossBarLevel(value) {
  * @param {string} metric - 'latency' | 'loss'
  * @returns {string} HTML
  */
-function renderBars(bars, metric) {
+function renderBars(bars, metric, extraClass) {
+    const cls = 'ping-bars' + (extraClass ? ' ' + extraClass : '');
     const list = bars || [];
-    if (list.length === 0) return '<span class="ping-bars ping-bars-empty"></span>';
+    if (list.length === 0) return '<span class="' + cls + ' ping-bars-empty"></span>';
 
     const levelOf = metric === 'loss' ? lossBarLevel : latencyBarLevel;
-    let html = '<span class="ping-bars">';
+    let html = '<span class="' + cls + '">';
     list.forEach(function (v) {
         html += '<i class="ping-bar-cell level-' + levelOf(v) + '"></i>';
     });

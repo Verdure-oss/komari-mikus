@@ -591,21 +591,32 @@ test('renderPingTasks 每个监测任务输出一行，含名称/延迟/波动�
     assert.match(html, /联通/);
 });
 
-test('renderPingTasks 每路两列，数值与彩条同列', function() {
+test('renderPingTasks 名称与两个数值在同一行', function() {
     const html = renderPingTasks(pingMetrics(), true);
-    // 3 路 × 2 列
-    assert.strictEqual((html.match(/class="ping-track"/g) || []).length, 6);
-    assert.match(html, /class="ping-track-value level-normal">74ms/);
-    assert.match(html, /class="ping-track-value level-excellent">45ms/);
+    // 3 路 × 2 个数值
+    assert.strictEqual((html.match(/class="ping-track-value/g) || []).length, 6);
+    assert.match(html, /class="ping-track-value is-lat level-normal">74ms/);
+    assert.match(html, /class="ping-track-value is-lat level-excellent">45ms/);
     // 丢包数值按自身分级着色，不与延迟混用
-    assert.match(html, /class="ping-track-value level-warning">14\.8%/);
-    assert.match(html, /class="ping-track-value level-excellent">0\.0%/);
+    assert.match(html, /class="ping-track-value is-loss level-warning">14\.8%/);
+    assert.match(html, /class="ping-track-value is-loss level-excellent">0\.0%/);
+});
+
+test('renderPingTasks 每路结构为 名称+两数值+占位+两条彩条', function() {
+    const html = renderPingTasks(pingMetrics(), true);
+    assert.strictEqual((html.match(/class="ping-task-group/g) || []).length, 3);
+    assert.strictEqual((html.match(/class="ping-task-spacer"/g) || []).length, 3);
+    // 每路 2 条彩条
+    assert.strictEqual((html.match(/class="ping-bars is-lat/g) || []).length, 3);
+    assert.strictEqual((html.match(/class="ping-bars is-loss/g) || []).length, 3);
+    // 顺序：name 在数值之前
+    assert.match(html, /class="ping-task-name">电信<\/span><span class="ping-track-value/);
 });
 
 test('renderPingTasks 每路两条彩条并排（延迟 + 丢包）', function() {
     const html = renderPingTasks(pingMetrics(), true);
     // 3 路 × 每路 2 条 = 6 条彩条容器
-    assert.strictEqual((html.match(/class="ping-bars"/g) || []).length, 6);
+    assert.strictEqual((html.match(/class="ping-bars is-/g) || []).length, 6);
     // 延迟 3 格 + 丢包 3 格，每路 6 格
     assert.strictEqual((html.match(/ping-bar-cell/g) || []).length, 18);
 });
@@ -623,7 +634,7 @@ test('renderPingTasks 探测失败显示超时，且丢包条标红', function()
     assert.match(html, /超时/);
     assert.ok(html.indexOf('-1ms') === -1);
     assert.match(html, /ping-task-group is-failed/);
-    assert.match(html, /class="ping-track-value level-danger">100\.0%/);
+    assert.match(html, /class="ping-track-value is-loss level-danger">100\.0%/);
     assert.strictEqual((html.match(/ping-bar-cell level-danger/g) || []).length, 2);
 });
 

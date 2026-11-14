@@ -10,8 +10,8 @@ import { t } from '../i18n/index.57cc9d99.js';
 import { formatBytes, formatOS } from '../utils/format.3f66f67a.js';
 import { escapeHtml, getLatestPing, getPingLevel, getRealtimePing, summarizePing, getPingTaskList, getCountryFlag, getShortOs, getUsageLevel } from '../utils/helpers.7db83e02.js';
 import { updateGreetingSubtitle } from './preloader.5fae44a4.js';
-import { renderGrid, updateGridRealtime } from './nodes-grid.e3af7d9a.js';
-import { renderTable, updateTableRealtime } from './nodes-table.3d986450.js';
+import { renderGrid, updateGridRealtime } from './nodes-grid.3bc8ce62.js';
+import { renderTable, updateTableRealtime } from './nodes-table.69e7fd69.js';
 
 /**
  * 获取所有分组及计数

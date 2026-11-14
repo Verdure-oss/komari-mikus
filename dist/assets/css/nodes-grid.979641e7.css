@@ -474,23 +474,29 @@
     color: var(--accent);
 }
 
-/* 三网延迟：每路一段——名称一行，下面左右两列（延迟 / 丢包） */
+/* 三网延迟：每路两行，三列 grid 共享列宽
+   行1 = 名称 | 延迟值 | 丢包值
+   行2 = 占位 | 延迟彩条 | 丢包彩条 */
 .node-ping-tasks {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     margin-top: 14px;
     padding-top: 10px;
     border-top: 1px dashed var(--border-light);
 }
 
 .ping-task-group {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+    display: grid;
+    grid-template-columns: 3.6em minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 3px;
+    align-items: center;
 }
 
 .ping-task-name {
+    grid-column: 1;
+    grid-row: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -502,18 +508,31 @@
     color: var(--text-tertiary);
 }
 
-/* 两列严格等宽，列间距固定；数值与彩条同列右对齐 */
-.ping-task-tracks {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+/* 第二行首列留空，让两条彩条与上方的数值列对齐 */
+.ping-task-spacer {
+    grid-column: 1;
+    grid-row: 2;
 }
 
-.ping-track {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
+/* 显式定位：延迟在左列(2)、丢包在右列(3)，避免 nth-of-type 选错元素 */
+.ping-track-value.is-lat {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.ping-track-value.is-loss {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.ping-bars.is-lat {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.ping-bars.is-loss {
+    grid-column: 3;
+    grid-row: 2;
 }
 
 .ping-track-value {
@@ -523,8 +542,6 @@
     line-height: 1.2;
     text-align: right;
     white-space: nowrap;
-    /* 与彩条右边缘严格对齐：彩条无内边距，此处也不留 */
-    padding: 0;
 }
 
 .ping-track-value.level-excellent,
@@ -544,6 +561,7 @@
     color: var(--danger);
 }
 
+/* 彩条容器：铺满所在列，保证与上方数值右边缘对齐 */
 .ping-bars {
     display: flex;
     align-items: center;
