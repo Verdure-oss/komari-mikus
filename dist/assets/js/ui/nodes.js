@@ -8,7 +8,7 @@
 import { state } from '../core/state.js';
 import { t } from '../i18n/index.js';
 import { formatBytes, formatOS } from '../utils/format.js';
-import { escapeHtml, getLatestPing, getPingLevel, getCountryFlag, getShortOs, getUsageLevel } from '../utils/helpers.js';
+import { escapeHtml, getLatestPing, getPingLevel, getRealtimePing, summarizePing, getCountryFlag, getShortOs, getUsageLevel } from '../utils/helpers.js';
 import { updateGreetingSubtitle } from './preloader.js';
 import { renderGrid, updateGridRealtime } from './nodes-grid.js';
 import { renderTable, updateTableRealtime } from './nodes-table.js';
@@ -154,7 +154,13 @@ export function calculateNodeMetrics(node) {
     const netTotalUp = rt.network ? rt.network.totalUp : 0;
     const netTotalDown = rt.network ? rt.network.totalDown : 0;
     const uptime = rt.uptime || 0;
-    const pingMs = getLatestPing(node.uuid);
+
+    // 延迟优先取实时轮询结果（有数据即用），历史数据作为回退
+    const pingSummary = summarizePing(getRealtimePing(node.uuid));
+    const pingMs = pingSummary && pingSummary.avgMs !== null
+        ? pingSummary.avgMs
+        : getLatestPing(node.uuid);
+
     const load1 = rt.load ? rt.load.load1 : null;
 
     const trafficLimit = node.traffic_limit || 0;
@@ -201,6 +207,9 @@ export function calculateNodeMetrics(node) {
         uptime: uptime,
         pingMs: pingMs,
         pingLevel: getPingLevel(pingMs),
+        pingLoss: pingSummary ? pingSummary.lossPct : null,
+        pingTaskCount: pingSummary ? pingSummary.taskCount : 0,
+        pingValidCount: pingSummary ? pingSummary.validCount : 0,
         load1: load1,
         flagUrl: getCountryFlag(node.region),
         osShort: getShortOs(node.os),

@@ -2,7 +2,7 @@
   "name": "Komari Mikus",
   "short": "Mikus",
   "description": "A modern, elegant Komari monitoring theme with light/dark theme switching, grid/table dual views, WebSocket real-time monitoring, and responsive design",
-  "version": "2.0.6",
+  "version": "2.1.1",
   "author": "Miku",
   "url": "https://github.com/mikus-loli/komari-mikus",
   "preview": "mikus.jpg",
@@ -105,6 +105,21 @@
           "en": "Display total upload/download traffic tags on node cards",
           "zh-CN": "在节点卡片上显示总上传/下载流量标签",
           "ja": "ノードカードに総アップロード/ダウンロードトラフィックタグを表示"
+        }
+      },
+      {
+        "key": "show_ping",
+        "name": {
+          "en": "Show Ping Latency",
+          "zh-CN": "显示延迟",
+          "ja": "レイテンシを表示"
+        },
+        "type": "switch",
+        "default": true,
+        "help": {
+          "en": "Display aggregated ping latency (average across monitoring tasks) on node cards",
+          "zh-CN": "在节点卡片上显示延迟（多个监测任务取平均值）",
+          "ja": "ノードカードに遅延を表示（複数タスクの平均値）"
         }
       },
       {

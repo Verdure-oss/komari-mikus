@@ -7,8 +7,9 @@
 import assert from 'node:assert/strict';
 import { formatTooltipTime, positionTooltip } from '../dist/assets/js/ui/charts/tooltip.js';
 import { calculateNodeMetrics } from '../dist/assets/js/ui/nodes.js';
-import { renderGrid, updateGridRealtime } from '../dist/assets/js/ui/nodes-grid.js';
+import { renderGrid, updateGridRealtime, renderPingBadge } from '../dist/assets/js/ui/nodes-grid.js';
 import { renderTable, updateTableRealtime } from '../dist/assets/js/ui/nodes-table.js';
+import { summarizePing } from '../dist/assets/js/utils/ping.js';
 import { state } from '../dist/assets/js/core/state.js';
 
 let passed = 0;
@@ -482,6 +483,109 @@ test('初次渲染和一次增量更新保持卡片结构并更新网格/表格�
             globalThis.document = previousDocument;
         }
     }
+});
+
+// ── 延迟聚合（summarizePing / calculateNodeMetrics.pingMs）─────────
+
+console.log('\nlatency aggregation:');
+
+test('summarizePing 多任务取平均，忽略 latest=-1 的失败探测', function() {
+    const s = summarizePing({
+        '2': { name: '电信', latest: 60, loss: 10, min: 50, max: 70 },
+        '3': { name: '移动', latest: 40, loss: 0, min: 30, max: 50 },
+        '4': { name: '联通', latest: -1, loss: 100, min: 0, max: 0 }
+    });
+    assert.strictEqual(s.avgMs, 50);          // (60 + 40) / 2，-1 不计入
+    assert.strictEqual(s.worstMs, 60);
+    assert.strictEqual(s.taskCount, 3);
+    assert.strictEqual(s.validCount, 2);
+    assert.strictEqual(s.lossPct, (10 + 0 + 100) / 3);
+});
+
+test('summarizePing 空值返回 null', function() {
+    assert.strictEqual(summarizePing(null), null);
+    assert.strictEqual(summarizePing(undefined), null);
+    assert.strictEqual(summarizePing({}), null);
+});
+
+test('summarizePing 全部探测失败时 avgMs 为 null 但仍保留丢包', function() {
+    const s = summarizePing({ '2': { latest: -1, loss: 100 } });
+    assert.strictEqual(s.avgMs, null);
+    assert.strictEqual(s.worstMs, null);
+    assert.strictEqual(s.lossPct, 100);
+    assert.strictEqual(s.taskCount, 1);
+});
+
+test('calculateNodeMetrics 优先使用实时 ping 聚合值', function() {
+    resetState();
+    state.onlineNodes = [UUID];
+    state.realtimeData[UUID] = {
+        ping: {
+            '2': { name: '电信', latest: 80, loss: 0 },
+            '3': { name: '移动', latest: 40, loss: 0 }
+        }
+    };
+    const m = calculateNodeMetrics(makeNode());
+    assert.strictEqual(m.pingMs, 60);
+    assert.strictEqual(m.pingLevel, 'normal');
+    assert.strictEqual(m.pingTaskCount, 2);
+    assert.strictEqual(m.pingLoss, 0);
+});
+
+test('实时无 ping 时回退到历史记录，且取每个任务的最新值', function() {
+    resetState();
+    state.onlineNodes = [UUID];
+    state.realtimeData[UUID] = {};
+    // records 按时间升序：尾部才是最新
+    state.pingData[UUID] = {
+        records: [
+            { time: 'T1', value: 10, task_id: '2' },
+            { time: 'T2', value: 20, task_id: '2' },
+            { time: 'T3', value: 90, task_id: '2' }
+        ],
+        tasks: []
+    };
+    const m = calculateNodeMetrics(makeNode());
+    assert.strictEqual(m.pingMs, 90);   // 不是最早的 10
+});
+
+test('既无实时也无历史延迟时 pingMs 为 null', function() {
+    resetState();
+    state.onlineNodes = [UUID];
+    state.realtimeData[UUID] = {};
+    const m = calculateNodeMetrics(makeNode());
+    assert.strictEqual(m.pingMs, null);
+});
+
+// ── 延迟徽章渲染 ──────────────────────────────────────────────────
+
+console.log('\nping badge rendering:');
+
+function pingMetrics(overrides) {
+    return Object.assign({
+        pingMs: 51,
+        pingLevel: 'normal',
+        pingTaskCount: 3,
+        pingLoss: 4.2
+    }, overrides || {});
+}
+
+test('renderPingBadge 输出带等级 class 的徽章', function() {
+    const html = renderPingBadge(pingMetrics(), true);
+    assert.match(html, /class="node-ping level-normal"/);
+    assert.match(html, />51ms</);
+    assert.match(html, /3 项任务均值/);
+    assert.match(html, /丢包 4\.2%/);
+});
+
+test('renderPingBadge 在 showPing=false 或延迟为空时不输出', function() {
+    assert.strictEqual(renderPingBadge(pingMetrics(), false), '');
+    assert.strictEqual(renderPingBadge(pingMetrics({ pingMs: null }), true), '');
+});
+
+test('renderPingBadge 对名称/提示做 HTML 转义', function() {
+    const html = renderPingBadge(pingMetrics({ pingMs: 51 }), true);
+    assert.ok(html.indexOf('<script') === -1);
 });
 
 // ── Summary ───────────────────────────────────────────────────────

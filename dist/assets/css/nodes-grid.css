@@ -78,6 +78,8 @@
     margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border-light);
+    /* 让延迟徽章始终贴右，不因名字换行而移动 */
+    flex-wrap: nowrap;
 }
 
 .node-card-flag {
@@ -121,17 +123,17 @@
     font-weight: 600;
     font-size: 1rem;
     color: var(--text-primary);
-    flex-wrap: wrap;
+    /* 单行显示，过长省略；避免长名字换行撑高卡片头部 */
+    flex-wrap: nowrap;
+    min-width: 0;
     line-height: 1.4;
 }
 
 .node-name-text {
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    word-break: break-all;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .node-card-os {
@@ -473,16 +475,24 @@
 }
 
 .node-ping {
+    margin-left: auto;
+    flex-shrink: 0;
     font-family: var(--font-mono);
     font-weight: 700;
     padding: 3px 8px;
     border-radius: 6px;
     font-size: 0.72rem;
+    white-space: nowrap;
     transition: transform 0.2s ease;
 }
 
 .node-card:hover .node-ping {
     transform: translateY(-1px);
+}
+
+.node-ping.level-excellent {
+    color: var(--success);
+    background: var(--success-light);
 }
 
 .node-ping.level-normal {

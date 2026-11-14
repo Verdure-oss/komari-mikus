@@ -181,10 +181,6 @@ body.has-custom-background .table-flag-placeholder {
         font-size: 0.95rem;
     }
 
-    .node-name-text {
-        -webkit-line-clamp: 2;
-    }
-
     .node-status-dot {
         width: 8px;
         height: 8px;
@@ -359,10 +355,6 @@ body.has-custom-background .table-flag-placeholder {
 
     .node-card-name {
         font-size: 0.85rem;
-    }
-
-    .node-name-text {
-        -webkit-line-clamp: 2;
     }
 
     .node-api-tag {

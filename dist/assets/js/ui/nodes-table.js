@@ -7,7 +7,7 @@
 
 import { state } from '../core/state.js';
 import { t } from '../i18n/index.js';
-import { formatBytes, formatSpeed, formatPercent, formatExpiry } from '../utils/format.js';
+import { formatBytes, formatSpeed, formatPercent, formatExpiry, formatPing } from '../utils/format.js';
 import { escapeHtml, parseTagInfo } from '../utils/helpers.js';
 import { openNodeModal } from './modal.js';
 import { getFilteredNodes, calculateNodeMetrics } from './nodes.js';
@@ -133,15 +133,16 @@ function renderTableCardMetrics(node, metrics, showNetwork) {
  * @param {boolean} showTrafficTags - 是否显示流量标签
  * @returns {string} HTML
  */
-function renderTableCardTags(node, metrics, showTrafficTags) {
+function renderTableCardTags(node, metrics, showTrafficTags, showPing) {
     const hasIpv4 = node.ipv4 && typeof node.ipv4 === 'string' && node.ipv4.trim() !== '';
     const hasIpv6 = node.ipv6 && typeof node.ipv6 === 'string' && node.ipv6.trim() !== '';
     const hasIpTags = hasIpv4 || hasIpv6;
     const hasTags = node.tags && node.tags.split(';').filter(function(t) { return t.trim(); }).length > 0;
     const hasTraffic = showTrafficTags && (metrics.netTotalUp > 0 || metrics.netTotalDown > 0);
     const hasRemainingTraffic = metrics.trafficLimit > 0;
+    const hasPing = showPing && metrics.pingMs !== null && metrics.pingMs !== undefined;
 
-    if (!hasIpTags && !hasTags && !hasTraffic && !hasRemainingTraffic) {
+    if (!hasIpTags && !hasTags && !hasTraffic && !hasRemainingTraffic && !hasPing) {
         return '';
     }
 
@@ -153,6 +154,18 @@ function renderTableCardTags(node, metrics, showTrafficTags) {
     }
     if (hasIpv6) {
         html += '<span class="table-card-tag tag-ip tag-ipv6">IPv6</span>';
+    }
+
+    if (hasPing) {
+        let pingTitle = formatPing(metrics.pingMs);
+        if (metrics.pingTaskCount > 0) {
+            pingTitle += ' · ' + metrics.pingTaskCount + ' 项任务均值';
+        }
+        if (metrics.pingLoss !== null && metrics.pingLoss !== undefined) {
+            pingTitle += ' · 丢包 ' + metrics.pingLoss.toFixed(1) + '%';
+        }
+        html += '<span class="table-card-tag tag-ping level-' + metrics.pingLevel + '" title="' +
+            escapeHtml(pingTitle) + '">' + formatPing(metrics.pingMs) + '</span>';
     }
 
     if (hasTraffic) {
@@ -184,16 +197,17 @@ function renderTableCardTags(node, metrics, showTrafficTags) {
  * @param {Object} metrics - 指标数据
  * @param {boolean} showNetwork - 是否显示网速
  * @param {boolean} showTrafficTags - 是否显示流量标签
+ * @param {boolean} showPing - 是否显示延迟
  * @returns {string} HTML
  */
-function renderTableCard(node, metrics, showNetwork, showTrafficTags) {
+function renderTableCard(node, metrics, showNetwork, showTrafficTags, showPing) {
     let html = '';
 
     html += '<div class="table-card' + (metrics.isOnline ? '' : ' offline') + '" data-uuid="' + node.uuid + '">';
     html += renderTableCardHeader(node, metrics);
     html += '<div class="table-card-metrics">';
     html += renderTableCardMetrics(node, metrics, showNetwork);
-    html += renderTableCardTags(node, metrics, showTrafficTags);
+    html += renderTableCardTags(node, metrics, showTrafficTags, showPing);
     html += '</div>';
     html += '</div>';
 
@@ -222,6 +236,7 @@ export function updateTableRealtime() {
 
     const showNetwork = state.themeSettings.show_network_speed !== false;
     const showTrafficTags = state.themeSettings.show_traffic_tags !== false;
+    const showPing = state.themeSettings.show_ping !== false;
     const nodesByUuid = new Map(state.nodes.map(function(node) {
         return [node.uuid, node];
     }));
@@ -237,7 +252,7 @@ export function updateTableRealtime() {
 
         if (metricsEl) {
             metricsEl.innerHTML = renderTableCardMetrics(node, metrics, showNetwork) +
-                renderTableCardTags(node, metrics, showTrafficTags);
+                renderTableCardTags(node, metrics, showTrafficTags, showPing);
         }
 
         card.classList.toggle('offline', !metrics.isOnline);
@@ -261,11 +276,12 @@ export function renderTable() {
 
     const showNetwork = state.themeSettings.show_network_speed !== false;
     const showTrafficTags = state.themeSettings.show_traffic_tags !== false;
+    const showPing = state.themeSettings.show_ping !== false;
 
     let html = '<div class="table-cards">';
     nodes.forEach(function (node) {
         const metrics = calculateNodeMetrics(node);
-        html += renderTableCard(node, metrics, showNetwork, showTrafficTags);
+        html += renderTableCard(node, metrics, showNetwork, showTrafficTags, showPing);
     });
     html += '</div>';
 

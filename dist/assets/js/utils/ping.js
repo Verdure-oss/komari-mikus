@@ -2,13 +2,15 @@
  * @module utils/ping
  * @description 延迟/Ping 相关辅助函数
  * @dependencies core/state.js
- * @exports getLatestPing, getPingTasks, getTaskLatestPing, getPingLevel
+ * @exports getLatestPing, getPingTasks, getTaskLatestPing, getPingLevel, getRealtimePing, summarizePing
  */
 
 import { state } from '../core/state.js';
 
 /**
- * 获取最新延迟
+ * 取每个任务的最新延迟后再求平均
+ * records 由 loadPingHistory 按时间升序排列，因此必须从尾部倒序取首个命中值，
+ * 否则拿到的是该任务最早的一条记录。
  * @param {string} uuid - 节点 UUID
  * @returns {number|null} 平均延迟值
  */
@@ -18,15 +20,73 @@ export function getLatestPing(uuid) {
         return null;
     }
     const taskValues = {};
-    pingInfo.records.forEach(function (r) {
-        if (!taskValues[r.task_id]) {
-            taskValues[r.task_id] = r.value;
+    for (let i = pingInfo.records.length - 1; i >= 0; i--) {
+        const r = pingInfo.records[i];
+        const key = String(r.task_id);
+        if (!Object.prototype.hasOwnProperty.call(taskValues, key) &&
+            r.value !== null && r.value !== undefined && r.value >= 0) {
+            taskValues[key] = r.value;
         }
-    });
-    const values = Object.values(taskValues).filter(function (v) { return v !== null && v !== undefined; });
+    }
+    const values = Object.values(taskValues);
     if (values.length === 0) return null;
     const sum = values.reduce(function (a, b) { return a + b; }, 0);
     return sum / values.length;
+}
+
+/**
+ * 获取实时轮询中的延迟数据
+ * @param {string} uuid - 节点 UUID
+ * @returns {Object|null} taskId → { name, latest, avg, loss, min, max }
+ */
+export function getRealtimePing(uuid) {
+    const rt = state.realtimeData[uuid];
+    return rt && rt.ping ? rt.ping : null;
+}
+
+/**
+ * 汇总延迟监测任务，得到卡片展示用的聚合值
+ * komari 用 latest = -1 表示本轮探测失败，这类任务只计入丢包、不计入延迟均值。
+ * @param {Object|null} pingMap - 实时轮询的 ping 映射
+ * @returns {Object|null} { avgMs, worstMs, lossPct, taskCount, validCount }
+ */
+export function summarizePing(pingMap) {
+    if (!pingMap) return null;
+
+    const latencies = [];
+    let lossSum = 0;
+    let lossCount = 0;
+    let taskCount = 0;
+
+    Object.keys(pingMap).forEach(function (taskId) {
+        const task = pingMap[taskId];
+        if (!task) return;
+        taskCount++;
+
+        const latest = typeof task.latest === 'number' ? task.latest : null;
+        if (latest !== null && latest >= 0) {
+            latencies.push(latest);
+        }
+        if (typeof task.loss === 'number' && !isNaN(task.loss)) {
+            lossSum += task.loss;
+            lossCount++;
+        }
+    });
+
+    if (taskCount === 0) return null;
+
+    const avgMs = latencies.length > 0
+        ? latencies.reduce(function (a, b) { return a + b; }, 0) / latencies.length
+        : null;
+
+    return {
+        avgMs: avgMs,
+        latestMs: latencies.length > 0 ? Math.max.apply(null, latencies) : null,
+        worstMs: latencies.length > 0 ? Math.max.apply(null, latencies) : null,
+        lossPct: lossCount > 0 ? lossSum / lossCount : null,
+        taskCount: taskCount,
+        validCount: latencies.length
+    };
 }
 
 /**

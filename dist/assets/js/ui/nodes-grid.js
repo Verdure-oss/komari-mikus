@@ -7,7 +7,7 @@
 
 import { state } from '../core/state.js';
 import { t } from '../i18n/index.js';
-import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice } from '../utils/format.js';
+import { formatBytes, formatSpeed, formatPercent, formatUptime, formatExpiry, formatPrice, formatPing } from '../utils/format.js';
 import { escapeHtml, parseTagInfo } from '../utils/helpers.js';
 import { openNodeModal } from './modal.js';
 import { getFilteredNodes, calculateNodeMetrics } from './nodes.js';
@@ -31,12 +31,48 @@ function renderMetricBar(label, value, level) {
 }
 
 /**
+ * 生成延迟徽章的悬浮提示文本
+ * @param {Object} metrics - 指标数据
+ * @returns {string} title 文本
+ */
+export function buildPingTitle(metrics) {
+    let title = formatPing(metrics.pingMs);
+    const details = [];
+    if (metrics.pingTaskCount > 0) {
+        details.push(metrics.pingTaskCount + ' 项任务均值');
+    }
+    if (metrics.pingLoss !== null && metrics.pingLoss !== undefined) {
+        details.push('丢包 ' + metrics.pingLoss.toFixed(1) + '%');
+    }
+    if (details.length > 0) {
+        title += ' · ' + details.join(' · ');
+    }
+    return title;
+}
+
+/**
+ * 渲染延迟徽章（卡片头部右侧）
+ * 仅在存在有效延迟时输出，避免无监测任务的节点出现「-」
+ * @param {Object} metrics - 指标数据
+ * @param {boolean} showPing - 是否显示延迟
+ * @returns {string} HTML
+ */
+export function renderPingBadge(metrics, showPing) {
+    if (!showPing) return '';
+    if (metrics.pingMs === null || metrics.pingMs === undefined) return '';
+
+    return '<span class="node-ping level-' + metrics.pingLevel + '" title="' +
+        escapeHtml(buildPingTitle(metrics)) + '">' + formatPing(metrics.pingMs) + '</span>';
+}
+
+/**
  * 渲染节点卡片头部（国旗 + 名称 + OS + 标签）
  * @param {Object} node - 节点对象
  * @param {Object} metrics - 指标数据
+ * @param {boolean} showPing - 是否显示延迟
  * @returns {string} HTML
  */
-function renderNodeCardHeader(node, metrics) {
+function renderNodeCardHeader(node, metrics, showPing) {
     let html = '<div class="node-card-header">';
 
     if (metrics.flagUrl) {
@@ -64,6 +100,9 @@ function renderNodeCardHeader(node, metrics) {
 
     html += '</div>';
     html += '</div>';
+
+    html += renderPingBadge(metrics, showPing);
+
     html += '</div>';
 
     return html;
@@ -174,13 +213,14 @@ function renderNodeCardFooterContent(node, metrics, showUptime, showNetwork, sho
  * @param {boolean} showUptime - 是否显示运行时间
  * @param {boolean} showNetwork - 是否显示网速
  * @param {boolean} showTrafficTags - 是否显示流量标签
+ * @param {boolean} showPing - 是否显示延迟
  * @returns {string} HTML
  */
-function renderNodeCard(node, metrics, showUptime, showNetwork, showTrafficTags) {
+function renderNodeCard(node, metrics, showUptime, showNetwork, showTrafficTags, showPing) {
     let html = '';
 
     html += '<div class="node-card' + (metrics.isOnline ? '' : ' offline') + (state.initialRender ? ' animate-in' : '') + '" data-uuid="' + node.uuid + '">';
-    html += renderNodeCardHeader(node, metrics);
+    html += renderNodeCardHeader(node, metrics, showPing);
     html += '<div class="node-card-metrics">';
     html += renderNodeMetrics(metrics);
     html += '</div>';
@@ -213,6 +253,7 @@ export function updateGridRealtime() {
     const showUptime = state.themeSettings.show_uptime !== false;
     const showNetwork = state.themeSettings.show_network_speed !== false;
     const showTrafficTags = state.themeSettings.show_traffic_tags !== false;
+    const showPing = state.themeSettings.show_ping !== false;
     const nodesByUuid = new Map(state.nodes.map(function(node) {
         return [node.uuid, node];
     }));
@@ -225,10 +266,25 @@ export function updateGridRealtime() {
         const metrics = calculateNodeMetrics(node);
         const metricsEl = card.querySelector('.node-card-metrics');
         const footerEl = card.querySelector('.node-card-footer');
+        const headerEl = card.querySelector('.node-card-header');
         const statusDot = card.querySelector('.node-status-dot');
 
         if (metricsEl) metricsEl.innerHTML = renderNodeMetrics(metrics);
         if (footerEl) footerEl.innerHTML = renderNodeCardFooterContent(node, metrics, showUptime, showNetwork, showTrafficTags);
+
+        // 延迟徽章随实时数据刷新
+        if (headerEl) {
+            const badgeEl = headerEl.querySelector('.node-ping');
+            if (metrics.pingMs === null || metrics.pingMs === undefined || !showPing) {
+                if (badgeEl) badgeEl.remove();
+            } else if (badgeEl) {
+                badgeEl.className = 'node-ping level-' + metrics.pingLevel;
+                badgeEl.textContent = formatPing(metrics.pingMs);
+                badgeEl.title = buildPingTitle(metrics);
+            } else {
+                headerEl.insertAdjacentHTML('beforeend', renderPingBadge(metrics, showPing));
+            }
+        }
 
         card.classList.toggle('offline', !metrics.isOnline);
         if (statusDot) statusDot.classList.toggle('offline', !metrics.isOnline);
@@ -252,11 +308,12 @@ export function renderGrid() {
     const showUptime = state.themeSettings.show_uptime !== false;
     const showNetwork = state.themeSettings.show_network_speed !== false;
     const showTrafficTags = state.themeSettings.show_traffic_tags !== false;
+    const showPing = state.themeSettings.show_ping !== false;
 
     let html = '';
     nodes.forEach(function (node) {
         const metrics = calculateNodeMetrics(node);
-        html += renderNodeCard(node, metrics, showUptime, showNetwork, showTrafficTags);
+        html += renderNodeCard(node, metrics, showUptime, showNetwork, showTrafficTags, showPing);
     });
 
     container.innerHTML = html;

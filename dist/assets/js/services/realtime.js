@@ -128,7 +128,10 @@ export function handleRpcResult(result) {
             network: status.net_in !== undefined ? { up: status.net_out, down: status.net_in, totalUp: status.net_total_up, totalDown: status.net_total_down } : null,
             connections: status.connections !== undefined ? { tcp: status.connections, udp: status.connections_udp } : null,
             uptime: status.uptime || 0,
-            process: status.process || 0
+            process: status.process || 0,
+            // 延迟监测任务实时结果：{ [taskId]: { name, latest, avg, loss, min, max } }
+            // komari 的 latest 为 -1 表示本轮探测失败，交由上层过滤
+            ping: status.ping || null
         };
 
         if (status.online && status.time) {

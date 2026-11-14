@@ -467,6 +467,28 @@
 .table-ping.level-warning { color: var(--warning); }
 .table-ping.level-danger { color: var(--danger); }
 
+/* 卡片标签区的延迟标签 */
+.table-card-tag.tag-ping {
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.table-card-tag.tag-ping.level-excellent,
+.table-card-tag.tag-ping.level-normal {
+    color: var(--success);
+    background: var(--success-light);
+}
+
+.table-card-tag.tag-ping.level-warning {
+    color: var(--warning);
+    background: var(--warning-light);
+}
+
+.table-card-tag.tag-ping.level-danger {
+    color: var(--danger);
+    background: var(--danger-light);
+}
+
 .table-uptime {
     font-family: var(--font-mono);
     font-size: 0.82rem;
