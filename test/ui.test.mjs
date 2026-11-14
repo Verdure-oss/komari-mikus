@@ -591,14 +591,15 @@ test('renderPingTasks 每个监测任务输出一行，含名称/延迟/波动�
     assert.match(html, /联通/);
 });
 
-test('renderPingTasks 每路头部含延迟与丢包两个数值', function() {
+test('renderPingTasks 每路两列，数值与彩条同列', function() {
     const html = renderPingTasks(pingMetrics(), true);
-    assert.strictEqual((html.match(/class="ping-task-head"/g) || []).length, 3);
-    assert.match(html, /class="ping-task-lat level-normal">74ms/);
-    assert.match(html, /class="ping-task-lat level-excellent">45ms/);
+    // 3 路 × 2 列
+    assert.strictEqual((html.match(/class="ping-track"/g) || []).length, 6);
+    assert.match(html, /class="ping-track-value level-normal">74ms/);
+    assert.match(html, /class="ping-track-value level-excellent">45ms/);
     // 丢包数值按自身分级着色，不与延迟混用
-    assert.match(html, /class="ping-task-loss level-warning">14\.8%/);
-    assert.match(html, /class="ping-task-loss level-excellent">0\.0%/);
+    assert.match(html, /class="ping-track-value level-warning">14\.8%/);
+    assert.match(html, /class="ping-track-value level-excellent">0\.0%/);
 });
 
 test('renderPingTasks 每路两条彩条并排（延迟 + 丢包）', function() {
@@ -622,7 +623,7 @@ test('renderPingTasks 探测失败显示超时，且丢包条标红', function()
     assert.match(html, /超时/);
     assert.ok(html.indexOf('-1ms') === -1);
     assert.match(html, /ping-task-group is-failed/);
-    assert.match(html, /class="ping-task-loss level-danger">100\.0%/);
+    assert.match(html, /class="ping-track-value level-danger">100\.0%/);
     assert.strictEqual((html.match(/ping-bar-cell level-danger/g) || []).length, 2);
 });
 
