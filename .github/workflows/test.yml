@@ -30,10 +30,11 @@ jobs:
 
       - name: Check no var declarations in JS
         run: |
-          count=$(grep -rP '\bvar\s' dist/assets/js/ --include='*.js' -l --exclude='sakura.js' | wc -l)
+          # sakura 是第三方压缩脚本，文件名带内容哈希（sakura.<hash>.js），用 --exclude-glob 匹配
+          count=$(grep -rP '\bvar\s' dist/assets/js/ --include='*.js' --exclude='sakura*' -l | wc -l)
           if [ "$count" -gt 0 ]; then
             echo "Found var declarations in:"
-            grep -rP '\bvar\s' dist/assets/js/ --include='*.js' -l --exclude='sakura.js'
+            grep -rP '\bvar\s' dist/assets/js/ --include='*.js' --exclude='sakura*' -l
             exit 1
           fi
           echo "No var declarations found"
@@ -45,8 +46,9 @@ jobs:
           for f in komari-theme.json dist/index.html LICENSE; do
             if [ ! -f "$f" ]; then missing="$missing $f"; fi
           done
-          if ! ls dist/assets/css/base.*.css dist/assets/css/base.css >/dev/null 2>&1; then missing="$missing base.css"; fi
-          if ! ls dist/assets/js/app.*.js dist/assets/js/app.js >/dev/null 2>&1; then missing="$missing app.js"; fi
+          # ls 同时列存在与不存在的文件会返回 2，用 find 判断更稳妥
+          if [ -z "$(find dist/assets/css -maxdepth 1 -name 'base*.css' -print -quit)" ]; then missing="$missing base.css"; fi
+          if [ -z "$(find dist/assets/js -maxdepth 1 -name 'app*.js' -print -quit)" ]; then missing="$missing app.js"; fi
           if [ -n "$missing" ]; then
             echo "Missing:$missing"
             exit 1

@@ -89,7 +89,7 @@ jobs:
           fi
           
           # app.js 带内容哈希（app.<hash>.js）
-          if ! ls dist/assets/js/app.*.js dist/assets/js/app.js >/dev/null 2>&1; then
+          if [ -z "$(find dist/assets/js -maxdepth 1 -name 'app*.js' -print -quit)" ]; then
             missing_files="$missing_files dist/assets/js/app.js"
           fi
           
